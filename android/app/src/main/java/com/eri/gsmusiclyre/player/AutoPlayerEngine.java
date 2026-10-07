@@ -172,6 +172,13 @@ public class AutoPlayerEngine {
 
     private void dispatchNotes(List<String> notes) {
         if (notes == null || notes.isEmpty()) return;
+        boolean isSky = (coordsManager.getGameMode() == com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_SKY);
+
+        // Acoustic sound playback for in-app listening and practice
+        for (String note : notes) {
+            com.eri.gsmusiclyre.util.AudioSynthesizer.getInstance().playNote(note, isSky);
+        }
+
         LyreAccessibilityService service = LyreAccessibilityService.getInstance();
         if (service == null) return;
 

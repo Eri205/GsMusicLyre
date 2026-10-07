@@ -20,13 +20,17 @@ import android.widget.Toast;
 import com.eri.gsmusiclyre.R;
 import com.eri.gsmusiclyre.util.KeyCoordinatesManager;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class CalibrationOverlayService extends Service {
     private WindowManager windowManager;
     private View fullOverlayView;
     private FrameLayout markersContainer;
+    private TextView tvTitle;
     private KeyCoordinatesManager coordsManager;
 
-    private final View[] markerViews = new View[KeyCoordinatesManager.TOTAL_KEYS];
+    private final List<View> markerViews = new ArrayList<>();
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -60,6 +64,12 @@ public class CalibrationOverlayService extends Service {
 
         markersContainer = fullOverlayView.findViewById(R.id.markers_container);
 
+        // Find title textView in toolbar
+        View toolbar = fullOverlayView.findViewById(R.id.calibration_root);
+        if (toolbar != null) {
+            tvTitle = fullOverlayView.findViewWithTag("title_calib");
+        }
+
         fullOverlayView.findViewById(R.id.btn_calib_close).setOnClickListener(v -> stopSelf());
         fullOverlayView.findViewById(R.id.btn_calib_reset).setOnClickListener(v -> resetMarkers());
         fullOverlayView.findViewById(R.id.btn_calib_save).setOnClickListener(v -> saveAllCoordinates());
@@ -72,20 +82,29 @@ public class CalibrationOverlayService extends Service {
     @SuppressLint("ClickableViewAccessibility")
     private void setupMarkers() {
         markersContainer.removeAllViews();
-        int markerSizePx = dpToPx(44);
+        markerViews.clear();
 
-        for (int i = 0; i < KeyCoordinatesManager.TOTAL_KEYS; i++) {
+        int mode = coordsManager.getGameMode();
+        int totalKeys = coordsManager.getTotalKeys();
+        String[] labels = coordsManager.getKeyLabels();
+
+        boolean isSky = (mode == KeyCoordinatesManager.GAME_SKY);
+        int markerSizePx = dpToPx(isSky ? 48 : 44);
+        int backgroundRes = isSky ? R.drawable.bg_key_sky : R.drawable.bg_key_circle;
+
+        for (int i = 0; i < totalKeys; i++) {
             final int index = i;
             TextView marker = new TextView(this);
-            marker.setText(KeyCoordinatesManager.KEY_LABELS[i]);
-            marker.setTextColor(Color.WHITE);
-            marker.setTextSize(14);
+            marker.setText(labels[i]);
+            marker.setTextColor(isSky ? Color.parseColor("#38BDF8") : Color.WHITE);
+            marker.setTextSize(isSky ? 13 : 14);
+            marker.setTypeface(null, android.graphics.Typeface.BOLD);
             marker.setGravity(Gravity.CENTER);
-            marker.setBackgroundResource(R.drawable.bg_key_circle);
+            marker.setBackgroundResource(backgroundRes);
 
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(markerSizePx, markerSizePx);
 
-            PointF pt = coordsManager.getKeyCoordinate(index);
+            PointF pt = coordsManager.getKeyCoordinate(index, mode);
             if (pt != null) {
                 lp.leftMargin = (int) (pt.x - markerSizePx / 2f);
                 lp.topMargin = (int) (pt.y - markerSizePx / 2f);
@@ -125,7 +144,7 @@ public class CalibrationOverlayService extends Service {
                 }
             });
 
-            markerViews[i] = marker;
+            markerViews.add(marker);
             markersContainer.addView(marker);
         }
     }
@@ -133,24 +152,28 @@ public class CalibrationOverlayService extends Service {
     private void resetMarkers() {
         coordsManager.resetToDefault();
         setupMarkers();
-        Toast.makeText(this, "Đã khôi phục 21 phím về mặc định", Toast.LENGTH_SHORT).show();
+        String gameName = (coordsManager.getGameMode() == KeyCoordinatesManager.GAME_SKY) ? "Sky COTL" : "Genshin";
+        Toast.makeText(this, "Đã khôi phục phím " + gameName + " về mặc định", Toast.LENGTH_SHORT).show();
     }
 
     private void saveAllCoordinates() {
-        int markerSizePx = dpToPx(44);
+        int mode = coordsManager.getGameMode();
+        boolean isSky = (mode == KeyCoordinatesManager.GAME_SKY);
+        int markerSizePx = dpToPx(isSky ? 48 : 44);
         float radius = markerSizePx / 2f;
 
-        for (int i = 0; i < KeyCoordinatesManager.TOTAL_KEYS; i++) {
-            View v = markerViews[i];
+        for (int i = 0; i < markerViews.size(); i++) {
+            View v = markerViews.get(i);
             if (v != null) {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
                 float centerX = lp.leftMargin + radius;
                 float centerY = lp.topMargin + radius;
-                coordsManager.saveKeyCoordinate(i, centerX, centerY);
+                coordsManager.saveKeyCoordinate(i, centerX, centerY, mode);
             }
         }
 
-        Toast.makeText(this, "✔ Đã lưu 21 vị trí phím thành công!", Toast.LENGTH_LONG).show();
+        String gameName = isSky ? "Sky: Children of the Light (15 phím)" : "Genshin Impact (21 phím)";
+        Toast.makeText(this, "✔ Đã lưu tọa độ cho " + gameName + "!", Toast.LENGTH_LONG).show();
         stopSelf();
     }
 

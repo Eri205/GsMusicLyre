@@ -193,6 +193,56 @@ class StandaloneWebPlayer {
 // ------------------------------------------------------------------
 class ClientSheetParser {
   static parseTextSheet(text, title = 'Custom Sheet') {
+    const trimmedRaw = text.trim();
+
+    // 1. Check if JSON (Sky Studio / Specy sheet format)
+    if (trimmedRaw.startsWith('{') || trimmedRaw.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmedRaw);
+        const obj = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (obj && (obj.songNotes || obj.notes)) {
+          const notesArr = obj.songNotes || obj.notes;
+          const bpm = obj.bpm || 120;
+          const chordsMap = new Map();
+          const skyKeyMap = ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G", "Z", "X", "C", "V", "B"];
+
+          for (const item of notesArr) {
+            const tMs = item.time || 0;
+            const tSec = Math.round((tMs / 1000.0) * 1000) / 1000;
+            let key = String(item.key || '');
+            const m = key.match(/Key(\d+)/i);
+            if (m) {
+              const idx = parseInt(m[1], 10);
+              key = skyKeyMap[idx % 15] || "Q";
+            } else if (key.match(/^[ABC][1-5]$/i)) {
+              key = key.toUpperCase();
+            } else if (key.match(/^\d+$/)) {
+              const num = parseInt(key, 10);
+              key = skyKeyMap[(num - 1) % 15] || "Q";
+            }
+            if (!chordsMap.has(tSec)) chordsMap.set(tSec, []);
+            chordsMap.get(tSec).push(key);
+          }
+          const chords = Array.from(chordsMap.entries()).sort((a, b) => a[0] - b[0]);
+          const duration = chords.length > 0 ? chords[chords.length - 1][0] + 1.2 : 10.0;
+          return {
+            id: (obj.name || title).replace(/\.[^/.]+$/, ''),
+            title: (obj.name || title).replace(/\.[^/.]+$/, ''),
+            artist_or_game: 'Sky Studio',
+            category: 'Sky COTL',
+            bpm: Math.round(bpm),
+            duration_seconds: Math.round(duration * 10) / 10,
+            note_count: chords.reduce((acc, c) => acc + c[1].length, 0),
+            recommended_transpose: 0,
+            chords: chords
+          };
+        }
+      } catch (e) {
+        // Fall back to text parsing
+      }
+    }
+
+    // 2. Parse Plain Text / ABC / Jianpu / Macro sheet
     const lines = text.split('\n');
     let bpm = 120;
     let cleanLines = [];
@@ -210,12 +260,13 @@ class ClientSheetParser {
     }
 
     const fullContent = cleanLines.join(' ');
-    // Tokenize notes: brackets like [QET] represent chords, individual letters represent single notes, or - for rests
-    const tokens = fullContent.match(/\[[A-Za-z]+\]|[A-Za-z]|-|\s+/g) || [];
+    // Match chords [QET] or [A1 A3 B1], Sky ABC tokens (A1..C5), numbers 1..15, single letters, or -
+    const tokens = fullContent.match(/\[[^\]]+\]|[A-C][1-5]|\b(?:1[0-5]|[1-9])\b|[A-Za-z]|-|\s+/g) || [];
     const chords = [];
     const secondsPerBeat = 60.0 / bpm;
     const stepDuration = secondsPerBeat / 2.0; // standard 8th note spacing
     let curTime = 0.0;
+    const skyNumToKey = ["Q", "W", "E", "R", "T", "A", "S", "D", "F", "G", "Z", "X", "C", "V", "B"];
 
     for (const token of tokens) {
       const trimmed = token.trim();
@@ -230,7 +281,18 @@ class ClientSheetParser {
 
       let keys = [];
       if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-        keys = trimmed.slice(1, -1).toUpperCase().split('');
+        const inner = trimmed.slice(1, -1).trim();
+        const subTokens = inner.split(/\s+/);
+        if (subTokens.length > 1) {
+          keys = subTokens.map(s => s.toUpperCase());
+        } else {
+          keys = inner.toUpperCase().split('');
+        }
+      } else if (trimmed.match(/^[A-C][1-5]$/i)) {
+        keys = [trimmed.toUpperCase()];
+      } else if (trimmed.match(/^\d+$/)) {
+        const n = parseInt(trimmed, 10);
+        keys = [skyNumToKey[(n - 1) % 15] || "Q"];
       } else {
         keys = trimmed.toUpperCase().split('');
       }
@@ -245,7 +307,7 @@ class ClientSheetParser {
     return {
       id: title.replace(/\.[^/.]+$/, ''),
       title: title.replace(/\.[^/.]+$/, ''),
-      artist_or_game: 'Mobile Imported',
+      artist_or_game: 'Custom Sheet',
       category: 'Custom',
       bpm: Math.round(bpm),
       duration_seconds: Math.round(duration * 10) / 10,

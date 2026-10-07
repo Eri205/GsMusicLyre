@@ -29,9 +29,12 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvStatusAccessibility;
     private Button btnGrantOverlay;
     private Button btnGrantAccessibility;
+    private Button btnSelectGenshin;
+    private Button btnSelectSky;
     private Button btnStartOverlay;
     private Button btnCalibrate;
     private RecyclerView rvSongs;
+    private com.eri.gsmusiclyre.util.KeyCoordinatesManager coordsManager;
 
     private List<Song> songs;
 
@@ -40,15 +43,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        coordsManager = new com.eri.gsmusiclyre.util.KeyCoordinatesManager(this);
         initViews();
         setupListeners();
         loadSongs();
+        updateGameSelectorUI();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         checkPermissions();
+        updateGameSelectorUI();
     }
 
     private void initViews() {
@@ -56,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
         tvStatusAccessibility = findViewById(R.id.tv_status_accessibility);
         btnGrantOverlay = findViewById(R.id.btn_grant_overlay);
         btnGrantAccessibility = findViewById(R.id.btn_grant_accessibility);
+        btnSelectGenshin = findViewById(R.id.btn_select_genshin);
+        btnSelectSky = findViewById(R.id.btn_select_sky);
         btnStartOverlay = findViewById(R.id.btn_start_overlay);
         btnCalibrate = findViewById(R.id.btn_calibrate);
         rvSongs = findViewById(R.id.rv_songs);
@@ -64,6 +72,22 @@ public class MainActivity extends AppCompatActivity {
     private void setupListeners() {
         btnGrantOverlay.setOnClickListener(v -> requestOverlayPermission());
         btnGrantAccessibility.setOnClickListener(v -> requestAccessibilityPermission());
+
+        if (btnSelectGenshin != null) {
+            btnSelectGenshin.setOnClickListener(v -> {
+                coordsManager.setGameMode(com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_GENSHIN);
+                updateGameSelectorUI();
+                Toast.makeText(this, "Đã chọn: Genshin Impact (21 phím)", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (btnSelectSky != null) {
+            btnSelectSky.setOnClickListener(v -> {
+                coordsManager.setGameMode(com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_SKY);
+                updateGameSelectorUI();
+                Toast.makeText(this, "Đã chọn: Sky: Children of the Light (15 phím)", Toast.LENGTH_SHORT).show();
+            });
+        }
 
         btnStartOverlay.setOnClickListener(v -> {
             if (!hasOverlayPermission()) {
@@ -84,7 +108,9 @@ public class MainActivity extends AppCompatActivity {
                 startService(overlayIntent);
             }
 
-            Toast.makeText(this, "Cửa sổ nổi đã bật! Hãy mở game Genshin Impact để chơi.", Toast.LENGTH_LONG).show();
+            String gameName = (coordsManager.getGameMode() == com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_SKY)
+                ? "Sky COTL" : "Genshin Impact";
+            Toast.makeText(this, "Cửa sổ nổi đã bật! Hãy mở game " + gameName + " để chơi.", Toast.LENGTH_LONG).show();
             moveTaskToBack(true); // Minimize app to let user play game
         });
 
@@ -98,6 +124,25 @@ public class MainActivity extends AppCompatActivity {
             startService(calibIntent);
             moveTaskToBack(true);
         });
+    }
+
+    private void updateGameSelectorUI() {
+        if (coordsManager == null || btnSelectGenshin == null || btnSelectSky == null) return;
+        boolean isSky = (coordsManager.getGameMode() == com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_SKY);
+
+        if (isSky) {
+            btnSelectSky.setBackgroundResource(R.drawable.bg_btn_gradient);
+            btnSelectGenshin.setBackgroundResource(R.drawable.bg_card_glass);
+            if (btnCalibrate != null) {
+                btnCalibrate.setText("🎯 CĂN CHỈNH 15 VỊ TRÍ PHÍM SKY COTL");
+            }
+        } else {
+            btnSelectGenshin.setBackgroundResource(R.drawable.bg_btn_gradient);
+            btnSelectSky.setBackgroundResource(R.drawable.bg_card_glass);
+            if (btnCalibrate != null) {
+                btnCalibrate.setText("🎯 CĂN CHỈNH 21 VỊ TRÍ PHÍM GENSHIN");
+            }
+        }
     }
 
     private void loadSongs() {

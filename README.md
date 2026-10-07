@@ -59,9 +59,17 @@ Chạy trực tiếp file:
 - Mở link web trực tiếp trên điện thoại: **[https://eri205.github.io/GsMusicLyre/](https://eri205.github.io/GsMusicLyre/)**
 - Cài đặt PWA vào màn hình chính để luyện đàn và nghe nhạc 100% offline.
 
-### Trên Điện Thoại Android (TỰ ĐỘNG CHƠI TRONG GAME GENSHIN & SKY)
+### Trên Điện Thoại Android (TỰ ĐỘNG CHƠI TRONG GAME GENSHIN & SKY: CHILDREN OF THE LIGHT)
 - Tải file **`GsMusicLyre-AutoPlay.apk`** từ mục **Releases** trên GitHub.
 - Mở app và cấp 2 quyền:
   1. **Cửa Sổ Nổi (Overlay)**: Hiển thị thanh điều khiển mini đè lên game.
-  2. **Hỗ Trợ Tiếp Cận (Accessibility)**: Cho phép tự động chạm 21 phím đàn trong game.
-- Bấm **"Mở Cửa Sổ Nổi Trong Game"** ➔ Vào Genshin Impact mở cây đàn ➔ Bấm **"🎯 Chỉnh Phím"** để kéo 21 vòng tròn khớp với phím đàn trên màn hình ➔ Bấm **▶ PHÁT** để đàn tự động đánh!
+  2. **Hỗ Trợ Tiếp Cận (Accessibility)**: Cho phép tự động chạm phím đàn trong game.
+- **Hỗ trợ 2 chế độ game chuyên biệt**:
+  - 🎮 **Genshin Impact**: 21 phím (3 hàng x 7 cột, C3 đến B5).
+  - ✨ **Sky: Children of the Light**: 15 phím kim cương chuẩn (3 hàng x 5 cột: A1-A5, B1-B5, C1-C5).
+- **Cách sử dụng**:
+  1. Chọn game bạn muốn chơi (**Genshin** hoặc **Sky COTL**).
+  2. Bấm **"Mở Cửa Sổ Nổi Trong Game"** ➔ Mở game và mở cây đàn ra.
+  3. Bấm nút **"🎯 Căn Phím"** trên bong bóng nổi để kéo thả các phím khớp 100% với đàn trong game ➔ Bấm **Lưu Tọa Độ**.
+  4. Có nút chuyển đổi nhanh giữa Genshin và Sky ngay trên cửa sổ nổi mà không cần thoát game!
+  5. Bấm **▶ PHÁT** để nghe đàn tự động chơi với âm sắc mượt mà!

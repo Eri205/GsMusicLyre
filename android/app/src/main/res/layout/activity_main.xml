@@ -160,6 +160,38 @@
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
+    <!-- Game Mode Switcher -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_select_genshin"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="5dp"
+            android:background="@drawable/bg_btn_gradient"
+            android:text="🎮 Genshin (21 Phím)"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btn_select_sky"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/bg_card_glass"
+            android:text="✨ Sky COTL (15 Phím)"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <!-- Action Buttons -->
     <Button
         android:id="@+id/btn_start_overlay"

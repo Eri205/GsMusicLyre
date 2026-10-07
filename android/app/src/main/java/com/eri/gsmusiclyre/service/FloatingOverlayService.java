@@ -226,6 +226,26 @@ public class FloatingOverlayService extends Service implements AutoPlayerEngine.
             tvSpeed.setText(String.format(Locale.US, "%.1fx", s));
         });
 
+        Button btnToggleGame = controllerView.findViewById(R.id.btn_toggle_game);
+        com.eri.gsmusiclyre.util.KeyCoordinatesManager coordsManager =
+            new com.eri.gsmusiclyre.util.KeyCoordinatesManager(this);
+        updateGameButton(btnToggleGame, coordsManager.getGameMode());
+
+        if (btnToggleGame != null) {
+            btnToggleGame.setOnClickListener(v -> {
+                int curMode = coordsManager.getGameMode();
+                int newMode = (curMode == com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_GENSHIN)
+                    ? com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_SKY
+                    : com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_GENSHIN;
+                coordsManager.setGameMode(newMode);
+                updateGameButton(btnToggleGame, newMode);
+                String name = (newMode == com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_SKY)
+                    ? "Sky: Children of the Light (15 phím)"
+                    : "Genshin Impact (21 phím)";
+                Toast.makeText(this, "Đã chuyển sang: " + name, Toast.LENGTH_SHORT).show();
+            });
+        }
+
         controllerView.findViewById(R.id.btn_open_calibrate).setOnClickListener(v -> {
             Intent calibIntent = new Intent(this, CalibrationOverlayService.class);
             startService(calibIntent);
@@ -233,6 +253,17 @@ public class FloatingOverlayService extends Service implements AutoPlayerEngine.
         });
 
         updateSongDisplay();
+    }
+
+    private void updateGameButton(Button btn, int mode) {
+        if (btn == null) return;
+        if (mode == com.eri.gsmusiclyre.util.KeyCoordinatesManager.GAME_SKY) {
+            btn.setText("✨ Sky (15)");
+            btn.setBackgroundResource(R.drawable.bg_key_sky);
+        } else {
+            btn.setText("🎮 Genshin (21)");
+            btn.setBackgroundResource(R.drawable.bg_btn_gradient);
+        }
     }
 
     private void togglePlay() {

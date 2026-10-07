@@ -12,33 +12,66 @@
 class LyreAudioSynthesizer {
   constructor() {
     this.ctx = null;
+    this.masterCompressor = null;
     this.currentInstrument = 'genshin';
+
     this.genshinFrequencies = {
+      // Low Octave
       'Z': 130.81, 'X': 146.83, 'C': 164.81, 'V': 174.61, 'B': 196.00, 'N': 220.00, 'M': 246.94,
+      'C3': 130.81, 'D3': 146.83, 'E3': 164.81, 'F3': 174.61, 'G3': 196.00, 'A3': 220.00, 'B3': 246.94,
+      // Mid Octave
       'A': 261.63, 'S': 293.66, 'D': 329.63, 'F': 349.23, 'G': 392.00, 'H': 440.00, 'J': 493.88,
-      'Q': 523.25, 'W': 587.33, 'E': 659.25, 'R': 698.46, 'T': 783.99, 'Y': 880.00, 'U': 987.77
+      'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+      // High Octave
+      'Q': 523.25, 'W': 587.33, 'E': 659.25, 'R': 698.46, 'T': 783.99, 'Y': 880.00, 'U': 987.77,
+      'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77
     };
+
     this.skyQwertFrequencies = {
-      // Row 1 (Top 5): C4 to G4
+      // Row 1 (Top 5): C4 to G4 -> Q, W, E, R, T / A1-A5 / 1-5
       'Q': 261.63, 'W': 293.66, 'E': 329.63, 'R': 349.23, 'T': 392.00,
-      // Row 2 (Mid 5): A4 to E5
+      'A1': 261.63, 'A2': 293.66, 'A3': 329.63, 'A4': 349.23, 'A5': 392.00,
+      '1': 261.63, '2': 293.66, '3': 329.63, '4': 349.23, '5': 392.00,
+      'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00,
+
+      // Row 2 (Mid 5): A4 to E5 -> A, S, D, F, G / B1-B5 / 6-10
       'A': 440.00, 'S': 493.88, 'D': 523.25, 'F': 587.33, 'G': 659.25,
-      // Row 3 (Bot 5): F5 to C6
-      'Z': 698.46, 'X': 783.99, 'C': 880.00, 'V': 987.77, 'B': 1046.50
+      'B1': 440.00, 'B2': 493.88, 'B3': 523.25, 'B4': 587.33, 'B5': 659.25,
+      '6': 440.00, '7': 493.88, '8': 523.25, '9': 587.33, '10': 659.25,
+      'A4': 440.00, 'B4': 493.88, 'C5': 523.25, 'D5': 587.33, 'E5': 659.25,
+
+      // Row 3 (Bot 5): F5 to C6 -> Z, X, C, V, B / C1-C5 / 11-15
+      'Z': 698.46, 'X': 783.99, 'C': 880.00, 'V': 987.77, 'B': 1046.50,
+      'C1': 698.46, 'C2': 783.99, 'C3': 880.00, 'C4_SKY': 987.77, 'C5_SKY': 1046.50,
+      '11': 698.46, '12': 783.99, '13': 880.00, '14': 987.77, '15': 1046.50,
+      'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77, 'C6': 1046.50
     };
+
     this.skySteamFrequencies = {
-      // Row 1 (Top 5): C4 to G4
+      // Row 1 (Top 5): C4 to G4 -> Y, U, I, O, P
       'Y': 261.63, 'U': 293.66, 'I': 329.63, 'O': 349.23, 'P': 392.00,
-      // Row 2 (Mid 5): A4 to E5
+      'A1': 261.63, 'A2': 293.66, 'A3': 329.63, 'A4': 349.23, 'A5': 392.00,
+      '1': 261.63, '2': 293.66, '3': 329.63, '4': 349.23, '5': 392.00,
+      'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00,
+
+      // Row 2 (Mid 5): A4 to E5 -> H, J, K, L, ;
       'H': 440.00, 'J': 493.88, 'K': 523.25, 'L': 587.33, ';': 659.25,
-      // Row 3 (Bot 5): F5 to C6
-      'B': 698.46, 'N': 783.99, 'M': 880.00, ',': 987.77, '.': 1046.50
+      'B1': 440.00, 'B2': 493.88, 'B3': 523.25, 'B4': 587.33, 'B5': 659.25,
+      '6': 440.00, '7': 493.88, '8': 523.25, '9': 587.33, '10': 659.25,
+      'A4': 440.00, 'B4': 493.88, 'C5': 523.25, 'D5': 587.33, 'E5': 659.25,
+
+      // Row 3 (Bot 5): F5 to C6 -> B, N, M, ,, .
+      'B': 698.46, 'N': 783.99, 'M': 880.00, ',': 987.77, '.': 1046.50,
+      'C1': 698.46, 'C2': 783.99, 'C3': 880.00, 'C4_SKY': 987.77, 'C5_SKY': 1046.50,
+      '11': 698.46, '12': 783.99, '13': 880.00, '14': 987.77, '15': 1046.50,
+      'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'B5': 987.77, 'C6': 1046.50
     };
+
     this.pitchFrequencies = this.genshinFrequencies;
   }
 
   setInstrument(instrument) {
-    this.currentInstrument = instrument;
+    this.currentInstrument = instrument || 'genshin';
     if (instrument === 'sky_steam') {
       this.pitchFrequencies = this.skySteamFrequencies;
     } else if (instrument === 'sky' || instrument === 'sky_qwert') {
@@ -53,7 +86,16 @@ class LyreAudioSynthesizer {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
     }
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx && !this.masterCompressor) {
+      this.masterCompressor = this.ctx.createDynamicsCompressor();
+      this.masterCompressor.threshold.setValueAtTime(-16, this.ctx.currentTime);
+      this.masterCompressor.knee.setValueAtTime(10, this.ctx.currentTime);
+      this.masterCompressor.ratio.setValueAtTime(4, this.ctx.currentTime);
+      this.masterCompressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+      this.masterCompressor.release.setValueAtTime(0.20, this.ctx.currentTime);
+      this.masterCompressor.connect(this.ctx.destination);
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
@@ -61,26 +103,120 @@ class LyreAudioSynthesizer {
   playKey(keyChar) {
     this.init();
     if (!this.ctx) return;
-    const lookupKey = (keyChar.length === 1 && keyChar.match(/[a-zA-Z]/)) ? keyChar.toUpperCase() : keyChar;
-    const freq = this.pitchFrequencies[lookupKey];
+    const raw = String(keyChar).trim();
+    const lookupKey = (raw.length === 1 && raw.match(/[a-zA-Z]/)) ? raw.toUpperCase() : raw;
+    let freq = this.pitchFrequencies[lookupKey];
+
+    // Fallbacks across tables
+    if (!freq) freq = this.skyQwertFrequencies[lookupKey];
+    if (!freq) freq = this.genshinFrequencies[lookupKey];
     if (!freq) return;
 
     const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    const isSky = this.currentInstrument && this.currentInstrument.startsWith('sky');
 
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, now);
+    // Filter node for natural acoustic shaping
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
 
-    gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.20, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+    if (isSky) {
+      // -------------------------------------------------------------
+      // Authentic Sky: Children of the Light Ethereal Acoustic Harp
+      // Rich fundamental + octave overtone + delicate bell shimmer
+      // -------------------------------------------------------------
+      const oscPrimary = this.ctx.createOscillator();
+      const oscHarmonic = this.ctx.createOscillator();
+      const oscChime = this.ctx.createOscillator();
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
+      const gainPrimary = this.ctx.createGain();
+      const gainHarmonic = this.ctx.createGain();
+      const gainChime = this.ctx.createGain();
 
-    osc.start(now);
-    osc.stop(now + 1.25);
+      // Frequencies
+      oscPrimary.type = 'sine';
+      oscPrimary.frequency.setValueAtTime(freq, now);
+
+      oscHarmonic.type = 'triangle';
+      oscHarmonic.frequency.setValueAtTime(freq * 2, now);
+
+      oscChime.type = 'sine';
+      oscChime.frequency.setValueAtTime(freq * 3, now);
+
+      // Lowpass sweep mimicking Sky temple acoustics
+      filter.frequency.setValueAtTime(3600, now);
+      filter.frequency.exponentialRampToValueAtTime(800, now + 1.8);
+      filter.Q.setValueAtTime(1.2, now);
+
+      // Warm attack & dreamy lingering sustain
+      gainPrimary.gain.setValueAtTime(0.001, now);
+      gainPrimary.gain.linearRampToValueAtTime(0.22, now + 0.012);
+      gainPrimary.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
+
+      gainHarmonic.gain.setValueAtTime(0.001, now);
+      gainHarmonic.gain.linearRampToValueAtTime(0.09, now + 0.008);
+      gainHarmonic.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+
+      gainChime.gain.setValueAtTime(0.001, now);
+      gainChime.gain.linearRampToValueAtTime(0.035, now + 0.006);
+      gainChime.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+
+      // Connect graph
+      oscPrimary.connect(gainPrimary);
+      oscHarmonic.connect(gainHarmonic);
+      oscChime.connect(gainChime);
+
+      gainPrimary.connect(filter);
+      gainHarmonic.connect(filter);
+      gainChime.connect(filter);
+
+      filter.connect(this.masterCompressor || this.ctx.destination);
+
+      oscPrimary.start(now);
+      oscHarmonic.start(now);
+      oscChime.start(now);
+
+      oscPrimary.stop(now + 2.1);
+      oscHarmonic.stop(now + 1.0);
+      oscChime.stop(now + 0.5);
+    } else {
+      // -------------------------------------------------------------
+      // Genshin Impact Lyre: Crisp, resonant plucked string
+      // -------------------------------------------------------------
+      const osc = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const gain2 = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(freq * 2, now);
+
+      filter.frequency.setValueAtTime(5000, now);
+      filter.frequency.exponentialRampToValueAtTime(1200, now + 1.2);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.22, now + 0.006);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+
+      gain2.gain.setValueAtTime(0.001, now);
+      gain2.gain.linearRampToValueAtTime(0.04, now + 0.004);
+      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+      osc.connect(gain);
+      osc2.connect(gain2);
+
+      gain.connect(filter);
+      gain2.connect(filter);
+
+      filter.connect(this.masterCompressor || this.ctx.destination);
+
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + 1.35);
+      osc2.stop(now + 0.55);
+    }
   }
 }
 

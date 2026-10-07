@@ -155,15 +155,27 @@
             android:textSize="12sp" />
 
         <Button
+            android:id="@+id/btn_toggle_game"
+            android:layout_width="wrap_content"
+            android:layout_height="28dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_btn_gradient"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:text="🎮 Genshin (21)"
+            android:textColor="@color/text_primary"
+            android:textSize="10sp" />
+
+        <Button
             android:id="@+id/btn_open_calibrate"
             android:layout_width="wrap_content"
             android:layout_height="28dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_btn_gradient"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:text="🎯 Chỉnh Phím"
-            android:textColor="@color/text_primary"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_card_glass"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:text="🎯 Căn Phím"
+            android:textColor="@color/accent_gold"
             android:textSize="10sp" />
     </LinearLayout>
 
