@@ -1,0 +1,416 @@
+/**
+ * web/js/standalone_player.js
+ * Standalone Web Audio Player & Client-side MIDI/Sheet Parser for GsMusicLyre Mobile & PWA.
+ * Enables 100% offline playback on phones, tablets, and browsers without Python backend.
+ */
+
+class StandaloneWebPlayer {
+  constructor(synthesizer) {
+    this.synth = synthesizer;
+    this.currentSong = null;
+    this.chords = [];
+    this.duration = 0;
+    this.currentTime = 0;
+    this.speed = 1.0;
+    this.transpose = 0;
+    this.instrument = 'genshin';
+    this.state = 'STOPPED'; // 'STOPPED', 'PLAYING', 'PAUSED'
+
+    this.timerId = null;
+    this.lastTickTime = 0;
+    this.currentIndex = 0;
+
+    // Callbacks
+    this.onProgress = null; // (currentSec, totalSec, chordKeys) => void
+    this.onStateChange = null; // (stateStr) => void
+    this.onFinished = null; // () => void
+  }
+
+  loadSong(songItem, autoPlay = false) {
+    this.stop();
+    this.currentSong = songItem;
+    this.duration = songItem.duration_seconds || 60;
+    this.chords = (songItem.chords || []).slice().sort((a, b) => a[0] - b[0]);
+    this.currentTime = 0;
+    this.currentIndex = 0;
+
+    if (autoPlay) {
+      this.play(0);
+    }
+
+    return {
+      duration: this.duration,
+      recommended_transpose: songItem.recommended_transpose || 0
+    };
+  }
+
+  play(startTime = null) {
+    if (!this.currentSong || this.chords.length === 0) return;
+
+    if (this.state === 'PAUSED' && startTime === null) {
+      return this.resume();
+    }
+
+    this.stopPlaybackTimer();
+
+    if (startTime !== null) {
+      this.currentTime = Math.max(0, Math.min(this.duration, parseFloat(startTime)));
+    } else if (this.currentTime >= this.duration) {
+      this.currentTime = 0;
+    }
+
+    // Find starting chord index based on currentTime
+    const effectiveTarget = this.currentTime;
+    this.currentIndex = 0;
+    for (let i = 0; i < this.chords.length; i++) {
+      if (this.chords[i][0] >= effectiveTarget) {
+        this.currentIndex = i;
+        break;
+      }
+    }
+
+    this.state = 'PLAYING';
+    if (this.onStateChange) this.onStateChange('PLAYING');
+
+    this.lastTickTime = performance.now();
+    this.startPlaybackLoop();
+  }
+
+  pause() {
+    if (this.state !== 'PLAYING') return;
+    this.state = 'PAUSED';
+    this.stopPlaybackTimer();
+    if (this.onStateChange) this.onStateChange('PAUSED');
+  }
+
+  resume() {
+    if (this.state !== 'PAUSED') return;
+    this.state = 'PLAYING';
+    this.lastTickTime = performance.now();
+    this.startPlaybackLoop();
+    if (this.onStateChange) this.onStateChange('PLAYING');
+  }
+
+  stop() {
+    this.state = 'STOPPED';
+    this.stopPlaybackTimer();
+    this.currentTime = 0;
+    this.currentIndex = 0;
+    if (this.onStateChange) this.onStateChange('STOPPED');
+    if (this.onProgress) this.onProgress(0, this.duration, []);
+  }
+
+  seek(seconds) {
+    const target = Math.max(0, Math.min(this.duration, parseFloat(seconds)));
+    this.currentTime = target;
+
+    // Reposition chord index
+    this.currentIndex = this.chords.length;
+    for (let i = 0; i < this.chords.length; i++) {
+      if (this.chords[i][0] >= target) {
+        this.currentIndex = i;
+        break;
+      }
+    }
+
+    if (this.onProgress) {
+      this.onProgress(this.currentTime, this.duration, []);
+    }
+  }
+
+  setSpeed(speedVal) {
+    this.speed = Math.max(0.2, Math.min(3.0, parseFloat(speedVal) || 1.0));
+  }
+
+  setTranspose(semitones) {
+    this.transpose = parseInt(semitones, 10) || 0;
+  }
+
+  setInstrument(inst) {
+    this.instrument = inst;
+  }
+
+  startPlaybackLoop() {
+    const tick = () => {
+      if (this.state !== 'PLAYING') return;
+
+      const now = performance.now();
+      const dt = (now - this.lastTickTime) / 1000.0;
+      this.lastTickTime = now;
+
+      // Advance virtual song time using speed factor
+      this.currentTime += dt * this.speed;
+
+      // Check if finished
+      if (this.currentTime >= this.duration) {
+        this.currentTime = this.duration;
+        this.stop();
+        if (this.onFinished) this.onFinished();
+        return;
+      }
+
+      // Trigger all chords whose timestamp has been reached
+      let activeKeys = [];
+      while (this.currentIndex < this.chords.length) {
+        const chord = this.chords[this.currentIndex];
+        const chordTime = chord[0];
+        const chordKeys = chord[1];
+
+        if (chordTime <= this.currentTime) {
+          if (chordKeys && chordKeys.length > 0) {
+            chordKeys.forEach((keyChar) => {
+              this.synth.playKey(keyChar);
+            });
+            activeKeys = activeKeys.concat(chordKeys);
+          }
+          this.currentIndex++;
+        } else {
+          break;
+        }
+      }
+
+      // Dispatch UI update
+      if (this.onProgress) {
+        this.onProgress(this.currentTime, this.duration, activeKeys);
+      }
+
+      this.timerId = requestAnimationFrame(tick);
+    };
+
+    this.timerId = requestAnimationFrame(tick);
+  }
+
+  stopPlaybackTimer() {
+    if (this.timerId) {
+      cancelAnimationFrame(this.timerId);
+      this.timerId = null;
+    }
+  }
+}
+
+// ------------------------------------------------------------------
+// Lightweight In-Browser MIDI & Text Sheet Parser
+// ------------------------------------------------------------------
+class ClientSheetParser {
+  static parseTextSheet(text, title = 'Custom Sheet') {
+    const lines = text.split('\n');
+    let bpm = 120;
+    let cleanLines = [];
+
+    // Parse header lines if any
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      if (line.toLowerCase().startsWith('bpm:') || line.toLowerCase().startsWith('tempo:')) {
+        const parsedBpm = parseFloat(line.split(':')[1]);
+        if (!isNaN(parsedBpm) && parsedBpm > 20) bpm = parsedBpm;
+      } else if (!line.startsWith('#') && !line.startsWith('//')) {
+        cleanLines.push(line);
+      }
+    }
+
+    const fullContent = cleanLines.join(' ');
+    // Tokenize notes: brackets like [QET] represent chords, individual letters represent single notes, or - for rests
+    const tokens = fullContent.match(/\[[A-Za-z]+\]|[A-Za-z]|-|\s+/g) || [];
+    const chords = [];
+    const secondsPerBeat = 60.0 / bpm;
+    const stepDuration = secondsPerBeat / 2.0; // standard 8th note spacing
+    let curTime = 0.0;
+
+    for (const token of tokens) {
+      const trimmed = token.trim();
+      if (!trimmed) {
+        curTime += stepDuration;
+        continue;
+      }
+      if (trimmed === '-') {
+        curTime += stepDuration;
+        continue;
+      }
+
+      let keys = [];
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        keys = trimmed.slice(1, -1).toUpperCase().split('');
+      } else {
+        keys = trimmed.toUpperCase().split('');
+      }
+
+      if (keys.length > 0) {
+        chords.push([Math.round(curTime * 1000) / 1000, keys]);
+      }
+      curTime += stepDuration;
+    }
+
+    const duration = Math.max(2.0, curTime);
+    return {
+      id: title.replace(/\.[^/.]+$/, ''),
+      title: title.replace(/\.[^/.]+$/, ''),
+      artist_or_game: 'Mobile Imported',
+      category: 'Custom',
+      bpm: Math.round(bpm),
+      duration_seconds: Math.round(duration * 10) / 10,
+      note_count: chords.reduce((acc, c) => acc + c[1].length, 0),
+      recommended_transpose: 0,
+      chords: chords
+    };
+  }
+
+  static parseMidiBuffer(arrayBuffer, filename = 'Imported_MIDI') {
+    const data = new DataView(arrayBuffer);
+    let offset = 0;
+
+    function readStr(len) {
+      let str = '';
+      for (let i = 0; i < len; i++) {
+        str += String.fromCharCode(data.getUint8(offset++));
+      }
+      return str;
+    }
+
+    // Verify 'MThd'
+    if (readStr(4) !== 'MThd') {
+      throw new Error('Not a valid MIDI file header');
+    }
+
+    offset += 4; // skip length 6
+    const format = data.getUint16(offset); offset += 2;
+    const numTracks = data.getUint16(offset); offset += 2;
+    const timeDivision = data.getUint16(offset); offset += 2;
+    const isDivisionInTicks = (timeDivision & 0x8000) === 0;
+    const ticksPerBeat = isDivisionInTicks ? timeDivision : 480;
+
+    // Mapping MIDI pitch -> Genshin key (48: C3 to 83: B5)
+    const MIDI_TO_GENSHIN = {
+      48: 'Z', 50: 'X', 52: 'C', 53: 'V', 55: 'B', 57: 'N', 59: 'M',
+      60: 'A', 62: 'S', 64: 'D', 65: 'F', 67: 'G', 69: 'H', 71: 'J',
+      72: 'Q', 74: 'W', 76: 'E', 77: 'R', 79: 'T', 81: 'Y', 83: 'U'
+    };
+
+    let allNotes = [];
+    let currentTempoMicros = 500000; // default 120 bpm
+
+    for (let t = 0; t < numTracks; t++) {
+      if (offset >= data.byteLength) break;
+      const chunkType = readStr(4);
+      const chunkLen = data.getUint32(offset); offset += 4;
+      if (chunkType !== 'MTrk') {
+        offset += chunkLen;
+        continue;
+      }
+
+      const trackEnd = offset + chunkLen;
+      let trackTicks = 0;
+      let runningStatus = 0;
+
+      while (offset < trackEnd) {
+        // Read variable-length delta time
+        let delta = 0;
+        let byte = 0;
+        do {
+          byte = data.getUint8(offset++);
+          delta = (delta << 7) | (byte & 0x7f);
+        } while (byte & 0x80);
+
+        trackTicks += delta;
+
+        let statusByte = data.getUint8(offset);
+        if (statusByte >= 0x80) {
+          offset++;
+          runningStatus = statusByte;
+        } else {
+          statusByte = runningStatus;
+        }
+
+        const eventType = statusByte >> 4;
+
+        if (eventType === 0x9) {
+          // Note On
+          const note = data.getUint8(offset++);
+          const velocity = data.getUint8(offset++);
+          if (velocity > 0) {
+            allNotes.push({ ticks: trackTicks, note: note });
+          }
+        } else if (eventType === 0x8) {
+          // Note Off
+          offset += 2;
+        } else if (eventType === 0xA || eventType === 0xB || eventType === 0xE) {
+          offset += 2;
+        } else if (eventType === 0xC || eventType === 0xD) {
+          offset += 1;
+        } else if (statusByte === 0xFF) {
+          // Meta Event
+          const metaType = data.getUint8(offset++);
+          let metaLen = 0;
+          let mByte = 0;
+          do {
+            mByte = data.getUint8(offset++);
+            metaLen = (metaLen << 7) | (mByte & 0x7f);
+          } while (mByte & 0x80);
+
+          if (metaType === 0x51 && metaLen === 3) {
+            // Set Tempo
+            currentTempoMicros = (data.getUint8(offset) << 16) | (data.getUint8(offset + 1) << 8) | data.getUint8(offset + 2);
+          }
+          offset += metaLen;
+        } else if (statusByte === 0xF0 || statusByte === 0xF7) {
+          // SysEx
+          let sysLen = 0;
+          let sByte = 0;
+          do {
+            sByte = data.getUint8(offset++);
+            sysLen = (sysLen << 7) | (sByte & 0x7f);
+          } while (sByte & 0x80);
+          offset += sysLen;
+        }
+      }
+    }
+
+    // Sort notes by timestamp
+    allNotes.sort((a, b) => a.ticks - b.ticks);
+
+    const secondsPerTick = (currentTempoMicros / 1000000.0) / ticksPerBeat;
+    const bpm = Math.round(60000000 / currentTempoMicros);
+
+    // Group into chords within 25ms threshold
+    const chordMap = new Map();
+    for (const n of allNotes) {
+      const timeSec = Math.round((n.ticks * secondsPerTick) * 40) / 40; // quantize to 25ms
+      let mappedKey = MIDI_TO_GENSHIN[n.note];
+      if (!mappedKey) {
+        // Octave wrap
+        const wrappedNote = ((n.note - 48) % 12) + 60;
+        mappedKey = MIDI_TO_GENSHIN[wrappedNote] || 'A';
+      }
+
+      if (!chordMap.has(timeSec)) {
+        chordMap.set(timeSec, new Set());
+      }
+      chordMap.get(timeSec).add(mappedKey);
+    }
+
+    const chords = [];
+    chordMap.forEach((keysSet, timeSec) => {
+      chords.push([timeSec, Array.from(keysSet)]);
+    });
+    chords.sort((a, b) => a[0] - b[0]);
+
+    const duration = chords.length > 0 ? chords[chords.length - 1][0] + 1.5 : 30.0;
+    const title = filename.replace(/\.[^/.]+$/, '');
+
+    return {
+      id: title,
+      title: title,
+      artist_or_game: 'Mobile Imported',
+      category: 'Custom',
+      bpm: bpm || 120,
+      duration_seconds: Math.round(duration * 10) / 10,
+      note_count: allNotes.length,
+      recommended_transpose: 0,
+      chords: chords
+    };
+  }
+}
+
+// Export to window for global access
+window.StandaloneWebPlayer = StandaloneWebPlayer;
+window.ClientSheetParser = ClientSheetParser;

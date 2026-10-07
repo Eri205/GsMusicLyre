@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GsMusicLyre</string>
+    <string name="app_subtitle">Auto Game Lyre Player cho Genshin &amp; Sky</string>
+    <string name="accessibility_service_desc">Dịch vụ hỗ trợ chạm phím tự động cho đàn hạc trong game Genshin Impact và Sky: Children of the Light.</string>
+    
+    <string name="permission_overlay_title">1. Quyền Cửa Sổ Nổi (Overlay)</string>
+    <string name="permission_overlay_desc">Cho phép hiển thị thanh điều khiển nổi đè lên trên game.</string>
+    <string name="permission_accessibility_title">2. Quyền Hỗ Trợ Tiếp Cận (Accessibility)</string>
+    <string name="permission_accessibility_desc">Cho phép ứng dụng tự động chạm vào 21 phím đàn trên màn hình.</string>
+    <string name="btn_grant">Cấp Quyền</string>
+    <string name="status_granted">Đã Bật</string>
+    <string name="status_not_granted">Chưa Bật</string>
+    
+    <string name="btn_start_overlay">Mở Cửa Sổ Nổi Trong Game</string>
+    <string name="btn_calibrate">Căn Chỉnh 21 Phím Đàn</string>
+    <string name="calibration_instruction">Kéo thả 21 chấm tròn lên đúng vị trí 21 phím đàn trong game Genshin Impact, sau đó bấm [Lưu Tọa Độ].</string>
+    <string name="btn_save_calibration">Lưu Tọa Độ</string>
+    <string name="btn_reset_calibration">Đặt Lại Mặc Định</string>
+    
+    <string name="section_songs">Thư Viện Bài Hát</string>
+</resources>

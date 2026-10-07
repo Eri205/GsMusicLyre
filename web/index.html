@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GsMusicLyre</title>
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#130D18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GsMusicLyre">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <link rel="stylesheet" href="css/liquid_glass.css">
+</head>
+<body>
+  <!-- Dynamic Liquid Chromatic Mesh Background -->
+  <div class="liquid-bg-container">
+    <div class="liquid-blob blob-1"></div>
+    <div class="liquid-blob blob-2"></div>
+    <div class="liquid-blob blob-3"></div>
+    <div class="liquid-blob blob-4"></div>
+  </div>
+  <div class="glass-noise-overlay"></div>
+
+  <!-- App Shell -->
+  <div class="app-container">
+    <!-- Custom Draggable Glass Titlebar -->
+    <header class="custom-titlebar pywebview-drag-region">
+      <div class="titlebar-brand">
+        <img src="assets/logo_transparent.png" class="titlebar-app-icon" alt="GsMusicLyre">
+        <span>GsMusicLyre</span>
+      </div>
+      <div class="titlebar-controls pywebview-no-drag">
+        <button class="btn-win-ctrl pywebview-no-drag" id="btn-win-min" title="Thu nhỏ (Minimize)">—</button>
+        <button class="btn-win-ctrl pywebview-no-drag" id="btn-win-max" title="Phóng to / Khôi phục (Maximize / Restore)">□</button>
+        <button class="btn-win-ctrl close pywebview-no-drag" id="btn-win-close" title="Đóng (Close)">✕</button>
+      </div>
+    </header>
+
+    <!-- Main Body: Sidebar + Dynamic Workspace -->
+    <div class="main-body">
+      <!-- Sidebar (Frosted Liquid Glass Panel) -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="app-avatar-box">
+            <img src="assets/logo_avatar.png" class="app-avatar-img" alt="GsMusicLyre Avatar">
+          </div>
+          <div class="brand-text">
+            <h1>GsMusicLyre</h1>
+            <span class="brand-badge">Pro Studio</span>
+          </div>
+        </div>
+
+        <nav class="nav-menu">
+          <div class="nav-item active" data-view="library">
+            <span class="nav-icon">🎵</span>
+            <span>Song Library</span>
+          </div>
+          <div class="nav-item" data-view="lyre">
+            <span class="nav-icon">🎹</span>
+            <span>Visual Lyre</span>
+          </div>
+          <div class="nav-item" data-view="mixer">
+            <span class="nav-icon">🎛️</span>
+            <span>Mixer & Tuning</span>
+          </div>
+          <div class="nav-item" data-view="settings">
+            <span class="nav-icon">⚙️</span>
+            <span>Hotkeys & Admin</span>
+          </div>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <!-- Target Instrument Custom Glass Dropdown -->
+        <div class="game-selector-box" id="game-selector-box">
+          <div class="game-selector-label">
+            <span>Target Instrument</span>
+            <span class="inst-count-badge">3 Layouts</span>
+          </div>
+          <div class="custom-dropdown" id="instrument-dropdown">
+            <button type="button" class="custom-dropdown-trigger" id="dropdown-trigger-instrument" aria-haspopup="listbox" aria-expanded="false">
+              <div class="dropdown-trigger-content">
+                <span class="trigger-icon" id="trigger-inst-icon">🪕</span>
+                <div class="trigger-text-wrap">
+                  <span class="trigger-title" id="trigger-inst-title">Genshin Lyre</span>
+                  <span class="trigger-subtitle" id="trigger-inst-sub">21 Phím: Q-U, A-J, Z-M</span>
+                </div>
+              </div>
+              <svg class="dropdown-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+
+            <div class="custom-dropdown-menu" id="instrument-dropdown-menu" role="listbox">
+              <div class="custom-dropdown-item active" data-value="genshin" role="option" aria-selected="true">
+                <div class="item-icon-box">🪕</div>
+                <div class="item-text-info">
+                  <div class="item-header-row">
+                    <span class="item-name">Genshin Lyre</span>
+                    <span class="item-tag tag-genshin">21 Phím</span>
+                  </div>
+                  <div class="item-desc">3 Hàng: Q-U, A-J, Z-M</div>
+                </div>
+                <div class="item-check-indicator">✓</div>
+              </div>
+
+              <div class="custom-dropdown-item" data-value="sky" role="option" aria-selected="false">
+                <div class="item-icon-box">🕊️</div>
+                <div class="item-text-info">
+                  <div class="item-header-row">
+                    <span class="item-name">Sky COTL (QWERT)</span>
+                    <span class="item-tag tag-sky">15 Phím</span>
+                  </div>
+                  <div class="item-desc">3 Hàng: Q-T, A-G, Z-B</div>
+                </div>
+                <div class="item-check-indicator">✓</div>
+              </div>
+
+              <div class="custom-dropdown-item" data-value="sky_steam" role="option" aria-selected="false">
+                <div class="item-icon-box">🎮</div>
+                <div class="item-text-info">
+                  <div class="item-header-row">
+                    <span class="item-name">Sky COTL (Steam)</span>
+                    <span class="item-tag tag-steam">Steam PC</span>
+                  </div>
+                  <div class="item-desc">3 Hàng: Y-P, H-;, B-.</div>
+                </div>
+                <div class="item-check-indicator">✓</div>
+              </div>
+            </div>
+
+            <!-- Hidden native select retained for backward compatibility -->
+            <select id="game-instrument-select" class="glass-select" style="display: none;" aria-hidden="true">
+              <option value="genshin">Genshin Lyre (21 Phím: Q-U, A-J, Z-M)</option>
+              <option value="sky">Sky COTL (15 Phím: Q-T, A-G, Z-B)</option>
+              <option value="sky_steam">Sky COTL (15 Phím: Y-P, H-;, B-.)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Launch Floating Overlay -->
+        <button class="btn-floating-launch" id="btn-launch-overlay" title="Mở ô cửa sổ mini-player nổi (Phím tắt: F11)">
+          <span>🪟</span>
+          <span>In-Game Overlay</span>
+          <span class="overlay-shortcut-pill">F11</span>
+        </button>
+
+        <!-- Admin Elevation Badge -->
+        <div class="admin-badge" id="admin-status-badge">
+          <span>🛡️</span>
+          <span id="admin-text">Admin Privilege Active</span>
+        </div>
+      </aside>
+
+      <!-- Content Workspace -->
+      <main class="content-area">
+        <!-- VIEW 1: SONG LIBRARY (2-COLUMN LAYOUT) -->
+        <section class="view-pane active" id="view-library">
+          <div class="library-layout">
+            <!-- GÓC BÊN CẠNH: DANH MỤC DỌC (VERTICAL CATEGORY TABS) -->
+            <aside class="library-categories-sidebar">
+              <div class="category-sidebar-title">DANH MỤC NHẠC</div>
+              <div class="category-nav-list" id="category-chips">
+                <div class="category-tab active" data-category="All">
+                  <span class="cat-icon">📑</span>
+                  <span class="cat-name">Tất cả bài hát</span>
+                  <span class="cat-badge" id="count-all">0</span>
+                </div>
+                <div class="category-tab" data-category="Custom">
+                  <span class="cat-icon">📥</span>
+                  <span class="cat-name">Nhạc đã Import</span>
+                  <span class="cat-badge" id="count-custom">0</span>
+                </div>
+                <div class="category-tab" data-category="Genshin Impact">
+                  <span class="cat-icon">✨</span>
+                  <span class="cat-name">Genshin Impact</span>
+                  <span class="cat-badge" id="count-genshin">0</span>
+                </div>
+                <div class="category-tab" data-category="Anime & OST">
+                  <span class="cat-icon">🌸</span>
+                  <span class="cat-name">Anime & OST</span>
+                  <span class="cat-badge" id="count-anime">0</span>
+                </div>
+                <div class="category-tab" data-category="Classical">
+                  <span class="cat-icon">🎻</span>
+                  <span class="cat-name">Classical</span>
+                  <span class="cat-badge" id="count-classic">0</span>
+                </div>
+                <div class="category-tab" data-category="Pop / Meme">
+                  <span class="cat-icon">🎧</span>
+                  <span class="cat-name">Pop / Meme</span>
+                  <span class="cat-badge" id="count-pop">0</span>
+                </div>
+                <div class="category-tab" data-category="Favorites ❤️">
+                  <span class="cat-icon">❤️</span>
+                  <span class="cat-name">Yêu thích</span>
+                  <span class="cat-badge" id="count-fav">0</span>
+                </div>
+              </div>
+
+              <!-- Nút Thao Tác Nhanh Ở Dưới Sidebar Danh Mục -->
+              <div class="category-sidebar-footer">
+                <button class="btn-sidebar-import" id="btn-import-midi" title="Chọn file MIDI hoặc TXT từ máy tính để import">
+                  <span>➕</span>
+                  <span>Import MIDI / TXT</span>
+                </button>
+                <button class="btn-sidebar-folder" id="btn-open-folder" title="Mở thư mục imported_songs trên Windows Explorer">
+                  <span>📁</span>
+                  <span>Thư mục Nhạc</span>
+                </button>
+              </div>
+            </aside>
+
+            <!-- KHUNG BÊN PHẢI: TÌM KIẾM + DANH SÁCH BÀI HÁT -->
+            <div class="library-main-content">
+              <div class="library-main-header">
+                <div class="library-heading-wrap">
+                  <h2 class="library-heading-title" id="heading-cat-title">Tất cả bài hát</h2>
+                  <span class="library-heading-count" id="heading-cat-count">0 bài hát</span>
+                </div>
+                <div class="search-glass-container">
+                  <div class="search-glass-icon-box">
+                    <svg class="search-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </div>
+                  <input type="text" id="library-search-input" class="search-glass-input" placeholder="Tìm kiếm bài hát, game, nghệ sĩ..." autocomplete="off" spellcheck="false">
+                  <button class="search-clear-btn" id="btn-search-clear" title="Xóa tìm kiếm" aria-label="Xóa tìm kiếm">✕</button>
+                  <div class="search-shortcut-badge" id="search-shortcut-badge" title="Phím tắt: / hoặc Ctrl+F">
+                    <span>/</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="song-cards-container" id="song-cards-list">
+                <!-- Dynamic song cards injected here -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 2: VISUAL LYRE (21 LIQUID GLASS KEYS) -->
+        <section class="view-pane" id="view-lyre">
+          <div class="lyre-header">
+            <h2>WINDSONG LYRE • 21 NATURAL KEYS</h2>
+            <span style="font-size: 12px; color: var(--text-dim);">Liquid Glass Keys glow in sync with game playback</span>
+          </div>
+
+          <!-- Mobile Landscape Advice Banner -->
+          <div class="mobile-orientation-banner">
+            <span>📱 Xoay ngang màn hình (Landscape) để phím mở rộng 2 tay chơi dễ như đàn thật!</span>
+          </div>
+
+          <div class="lyre-container" id="lyre-board">
+            <!-- Row 1: High Octave (Do5 - Si5) -->
+            <div class="lyre-row">
+              <div class="row-tag">Oct 5</div>
+              <div class="glass-key" data-key="Q"><span class="key-letter">Q</span><span class="key-note">Do5</span></div>
+              <div class="glass-key" data-key="W"><span class="key-letter">W</span><span class="key-note">Re5</span></div>
+              <div class="glass-key" data-key="E"><span class="key-letter">E</span><span class="key-note">Mi5</span></div>
+              <div class="glass-key" data-key="R"><span class="key-letter">R</span><span class="key-note">Fa5</span></div>
+              <div class="glass-key" data-key="T"><span class="key-letter">T</span><span class="key-note">Sol5</span></div>
+              <div class="glass-key" data-key="Y"><span class="key-letter">Y</span><span class="key-note">La5</span></div>
+              <div class="glass-key" data-key="U"><span class="key-letter">U</span><span class="key-note">Si5</span></div>
+            </div>
+
+            <!-- Row 2: Mid Octave (Do4 - Si4) -->
+            <div class="lyre-row">
+              <div class="row-tag">Oct 4</div>
+              <div class="glass-key" data-key="A"><span class="key-letter">A</span><span class="key-note">Do4</span></div>
+              <div class="glass-key" data-key="S"><span class="key-letter">S</span><span class="key-note">Re4</span></div>
+              <div class="glass-key" data-key="D"><span class="key-letter">D</span><span class="key-note">Mi4</span></div>
+              <div class="glass-key" data-key="F"><span class="key-letter">F</span><span class="key-note">Fa4</span></div>
+              <div class="glass-key" data-key="G"><span class="key-letter">G</span><span class="key-note">Sol4</span></div>
+              <div class="glass-key" data-key="H"><span class="key-letter">H</span><span class="key-note">La4</span></div>
+              <div class="glass-key" data-key="J"><span class="key-letter">J</span><span class="key-note">Si4</span></div>
+            </div>
+
+            <!-- Row 3: Low Octave (Do3 - Si3) -->
+            <div class="lyre-row">
+              <div class="row-tag">Oct 3</div>
+              <div class="glass-key" data-key="Z"><span class="key-letter">Z</span><span class="key-note">Do3</span></div>
+              <div class="glass-key" data-key="X"><span class="key-letter">X</span><span class="key-note">Re3</span></div>
+              <div class="glass-key" data-key="C"><span class="key-letter">C</span><span class="key-note">Mi3</span></div>
+              <div class="glass-key" data-key="V"><span class="key-letter">V</span><span class="key-note">Fa3</span></div>
+              <div class="glass-key" data-key="B"><span class="key-letter">B</span><span class="key-note">Sol3</span></div>
+              <div class="glass-key" data-key="N"><span class="key-letter">N</span><span class="key-note">La3</span></div>
+              <div class="glass-key" data-key="M"><span class="key-letter">M</span><span class="key-note">Si3</span></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 3: MIXER & TUNING -->
+        <section class="view-pane" id="view-mixer">
+          <div class="mixer-grid">
+            <!-- Left tuning controls -->
+            <div class="mixer-panel">
+              <div class="panel-title">
+                <span>🎛️</span>
+                <span>PITCH & TEMPO TUNING</span>
+              </div>
+
+              <div class="control-group">
+                <div class="control-header">
+                  <span>Transpose Pitch</span>
+                  <span class="control-val" id="val-transpose">0 st</span>
+                </div>
+                <input type="range" id="slider-transpose" class="glass-slider" min="-12" max="12" step="1" value="0">
+                <button class="btn-auto-key" id="btn-auto-key">🎯 Auto-Detect Best Key (C Maj)</button>
+              </div>
+
+              <div class="control-group">
+                <div class="control-header">
+                  <span>Playback Speed</span>
+                  <span class="control-val" id="val-speed">1.0x</span>
+                </div>
+                <input type="range" id="slider-speed" class="glass-slider" min="0.5" max="2.0" step="0.05" value="1.0">
+              </div>
+
+              <div class="control-group" style="margin-top: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                  <input type="checkbox" id="chk-genshin-only" style="accent-color: var(--cyan); width: 16px; height: 16px;">
+                  <span>Chỉ gõ khi ở trong game (Genshin / Sky COTL)</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Right tracks list -->
+            <div class="mixer-panel">
+              <div class="panel-title">
+                <span>🎼</span>
+                <span>MIDI TRACKS & CHANNELS</span>
+              </div>
+              <div class="tracks-list-scroll" id="mixer-tracks-container">
+                <!-- Tracks checklist injected dynamically -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 4: SETTINGS & HOTKEYS -->
+        <section class="view-pane" id="view-settings">
+          <div class="mixer-panel" style="gap: 18px; max-width: 820px; margin: 0 auto; width: 100%;">
+            <div class="panel-title">
+              <span>⚡</span>
+              <span>CÀI ĐẶT PHÍM NÓNG ĐIỀU KHIỂN (IN-GAME HOTKEYS)</span>
+            </div>
+
+            <p style="font-size: 12.5px; color: var(--text-dim); line-height: 1.6; margin: 0;">
+              Khi đang ở trong game Genshin Impact, bạn có thể nhấn các phím này để điều khiển phát nhạc tức thì mà không cần thoát chuột ra ngoài.
+            </p>
+
+            <!-- Quick Presets -->
+            <div class="hotkey-presets-wrapper">
+              <span class="hotkey-preset-label">Bộ phím nhanh:</span>
+              <div class="hotkey-presets-list">
+                <button type="button" class="btn-preset-pill active" id="preset-123" data-play="1" data-stop="2" data-pause="3">
+                  🔥 Phím số 1 - 2 - 3 (Tiện nhất)
+                </button>
+                <button type="button" class="btn-preset-pill" id="preset-tilde" data-play="`" data-stop="-" data-pause="=">
+                  🎹 Phím ` (Tilde) & Dấu trừ (-)
+                </button>
+                <button type="button" class="btn-preset-pill" id="preset-numpad" data-play="num 1" data-stop="num 2" data-pause="num 3">
+                  🔢 Phím số Numpad (1, 2, 3)
+                </button>
+                <button type="button" class="btn-preset-pill" id="preset-fkeys" data-play="f8" data-stop="f10" data-pause="f9">
+                  ⌨️ F8 - F9 - F10
+                </button>
+              </div>
+            </div>
+
+            <!-- Hotkey Inputs List -->
+            <div class="hotkey-cards-group">
+              <!-- Play / Resume / Pause -->
+              <div class="hotkey-card-row">
+                <div class="hotkey-card-meta">
+                  <div class="hotkey-card-title">▶ Phát / Tiếp tục / Tạm dừng (Play / Pause)</div>
+                  <div class="hotkey-card-desc">Bắt đầu phát bài hát đang chọn hoặc tạm dừng ngay trong game</div>
+                </div>
+                <div class="hotkey-card-action">
+                  <input type="text" id="hotkey-key-play" class="hotkey-input-badge" value="1" readonly>
+                  <button type="button" class="btn-change-key" data-target="hotkey-key-play">Đổi phím</button>
+                </div>
+              </div>
+
+              <!-- Stop / Reset -->
+              <div class="hotkey-card-row">
+                <div class="hotkey-card-meta">
+                  <div class="hotkey-card-title">⏹ Dừng hẳn bài hát (Stop / Panic)</div>
+                  <div class="hotkey-card-desc">Dừng nhạc ngay lập tức, trả lại bàn phím và tua về đầu bài</div>
+                </div>
+                <div class="hotkey-card-action">
+                  <input type="text" id="hotkey-key-stop" class="hotkey-input-badge red" value="2" readonly>
+                  <button type="button" class="btn-change-key" data-target="hotkey-key-stop">Đổi phím</button>
+                </div>
+              </div>
+
+              <!-- Pause only (optional) -->
+              <div class="hotkey-card-row">
+                <div class="hotkey-card-meta">
+                  <div class="hotkey-card-title">⏸ Tạm dừng riêng biệt (Pause)</div>
+                  <div class="hotkey-card-desc">Chỉ tạm dừng bài hát tại thời điểm hiện tại (tuỳ chọn)</div>
+                </div>
+                <div class="hotkey-card-action">
+                  <input type="text" id="hotkey-key-pause" class="hotkey-input-badge" value="3" readonly>
+                  <button type="button" class="btn-change-key" data-target="hotkey-key-pause">Đổi phím</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Save and feedback button -->
+            <div class="hotkey-save-row">
+              <button type="button" class="btn-save-hotkeys" id="btn-save-hotkeys">
+                <span>💾</span>
+                <span>Lưu Cài Đặt Phím Nóng</span>
+              </button>
+              <span class="hotkey-status-msg" id="hotkey-status-msg"></span>
+            </div>
+
+            <!-- Admin Privilege Info -->
+            <div class="panel-title" style="margin-top: 14px;">
+              <span>🛡️</span>
+              <span>QUYỀN HẠN ADMINISTRATOR</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.6; margin: 0;">
+              GsMusicLyre đã được cấu hình quyền Administrator để có thể gửi phím nhạc trực tiếp vào game Genshin Impact ở mọi chế độ hiển thị (Fullscreen / Borderless).
+            </p>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="admin-status-active-pill" style="font-size: 12px; font-weight: 700; color: #10B981; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); padding: 6px 14px; border-radius: var(--radius-pill);">
+                ✅ Đang kích hoạt quyền Admin
+              </span>
+              <button type="button" class="btn-floating-launch" id="btn-elevate-admin" style="display: none; width: 220px; background: linear-gradient(135deg, #F59E0B, #D97706); color: white;">
+                🛡️ Cấp Quyền Administrator
+              </button>
+            </div>
+
+            <!-- Mobile PWA Installation & Offline Card -->
+            <div class="panel-title" style="margin-top: 14px;">
+              <span>📱</span>
+              <span>ỨNG DỤNG MOBILE & TIỆN ÍCH PWA</span>
+            </div>
+            <div class="mobile-pwa-card" id="mobile-pwa-card">
+              <div class="pwa-card-desc">
+                Bạn có thể cài đặt GsMusicLyre trực tiếp lên màn hình chính của điện thoại (Android / iOS) để mở nhanh như một ứng dụng độc lập, hoạt động mượt mà không cần thanh địa chỉ trình duyệt và sẵn sàng chạy Offline 100%.
+              </div>
+              <div class="pwa-actions-row">
+                <button type="button" class="btn-pwa-install" id="btn-pwa-install">
+                  <span>📲</span>
+                  <span>Cài Đặt Lên Màn Hình Chính</span>
+                </button>
+                <div class="pwa-status-badge">
+                  <span>🟢 Đã sẵn sàng Offline 100%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Bottom Persistent Player Bar -->
+    <footer class="player-bar">
+      <!-- Left: Song details -->
+      <div class="current-song-pane">
+        <div class="bar-avatar">✨</div>
+        <div class="bar-song-text">
+          <div class="bar-title" id="bar-song-title">Mondstadt Theme</div>
+          <div class="bar-artist" id="bar-song-meta">miHoYo • 108 BPM</div>
+        </div>
+      </div>
+
+      <!-- Center: Transport controls & scrubber -->
+      <div class="player-transport-pane">
+        <div class="transport-buttons">
+          <button class="btn-ctrl" id="btn-bar-prev" title="Previous Song">⏮</button>
+          <button class="btn-play-hero" id="btn-bar-play" title="Play / Resume (F8)">▶</button>
+          <button class="btn-ctrl" id="btn-bar-stop" title="Stop (F10)" style="font-size: 14px;">⏹</button>
+          <button class="btn-ctrl" id="btn-bar-next" title="Next Song">⏭</button>
+          <button class="btn-ctrl" id="btn-countdown-play" title="Đếm ngược 3 giây để bạn kịp bấm chuột vào Chrome / Genshin" style="font-size: 11px; font-weight: 700; background: rgba(0, 229, 255, 0.15); border: 1px solid rgba(0, 229, 255, 0.35); border-radius: 12px; padding: 4px 10px; color: var(--cyan); margin-left: 6px;">⏱️ Play sau 3s</button>
+        </div>
+
+        <div class="scrubber-row pywebview-no-drag">
+          <span class="time-lbl pywebview-no-drag" id="lbl-bar-cur">00:00</span>
+          <input type="range" class="scrubber-slider pywebview-no-drag" id="bar-progress-slider" min="0" max="100" step="0.05" value="0">
+          <span class="time-lbl pywebview-no-drag" id="lbl-bar-tot" style="text-align: right;">00:00</span>
+        </div>
+      </div>
+
+      <!-- Right: Tuning Badges & Overlay -->
+      <div class="player-right-pane">
+        <button class="btn-ctrl" id="btn-toggle-sound" title="Âm thanh thử trong App: ĐANG BẬT (Bấm để Tắt)" style="font-size: 16px; color: var(--cyan);">🔊</button>
+        <button class="btn-ctrl" id="btn-play-mode" title="Chế độ phát: Dừng sau khi hết bài (Mặc định)" style="font-size: 14px; color: var(--cyan);">⏹️</button>
+        <div class="pill-badge" id="badge-transpose">0 st</div>
+        <div class="pill-badge" id="badge-speed" style="color: var(--cyan);">1.0x</div>
+        <button class="btn-ctrl" id="btn-bar-overlay" title="Launch In-Game Overlay" style="font-size: 20px;">🪟</button>
+      </div>
+    </footer>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Mobile Navigation">
+      <button type="button" class="mobile-nav-btn active" data-view="library">
+        <span class="mobile-nav-icon">🎵</span>
+        <span class="mobile-nav-label">Thư viện</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" data-view="lyre">
+        <span class="mobile-nav-icon">🎹</span>
+        <span class="mobile-nav-label">Đàn Lyre</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" data-view="mixer">
+        <span class="mobile-nav-icon">🎛️</span>
+        <span class="mobile-nav-label">Bộ chỉnh</span>
+      </button>
+      <button type="button" class="mobile-nav-btn" data-view="settings">
+        <span class="mobile-nav-icon">⚙️</span>
+        <span class="mobile-nav-label">Cài đặt</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Custom Liquid Glass Confirmation Modal -->
+  <div class="glass-modal-backdrop" id="custom-confirm-modal" aria-hidden="true">
+    <div class="glass-modal-container">
+      <div class="glass-modal-glow"></div>
+      
+      <div class="glass-modal-header">
+        <div class="glass-modal-icon-badge danger">
+          <span class="modal-icon">🗑️</span>
+        </div>
+        <div class="glass-modal-title-box">
+          <h3 class="glass-modal-title" id="modal-title">Xóa bài hát</h3>
+          <span class="glass-modal-subtitle" id="modal-subtitle">Thao tác này không thể hoàn tác</span>
+        </div>
+        <button class="btn-modal-close" id="btn-modal-close" title="Đóng">✕</button>
+      </div>
+
+      <div class="glass-modal-body">
+        <p class="glass-modal-text" id="modal-message">Bạn có chắc chắn muốn xóa bài hát này khỏi thư viện nhạc?</p>
+        <div class="glass-modal-target-card" id="modal-target-card">
+          <span class="modal-target-icon">🎵</span>
+          <span class="modal-target-title" id="modal-target-name">Tên bài hát</span>
+        </div>
+        <div class="glass-modal-warning-tip">
+          <span class="warning-bullet">⚠️</span>
+          <span>Tệp MIDI tương ứng trên máy tính của bạn sẽ bị xóa vĩnh viễn.</span>
+        </div>
+      </div>
+
+      <div class="glass-modal-footer">
+        <button type="button" class="btn-modal-cancel" id="btn-modal-cancel">Hủy bỏ</button>
+        <button type="button" class="btn-modal-confirm danger" id="btn-modal-confirm">
+          <span>Xóa vĩnh viễn</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="glass-toast-container" id="glass-toast-container"></div>
+
+  <!-- PWA & Standalone Web Audio Engine Scripts -->
+  <script src="js/builtin_songs.js"></script>
+  <script src="js/standalone_player.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          console.log('PWA ServiceWorker registered successfully:', reg.scope);
+        }).catch((err) => {
+          console.log('PWA ServiceWorker registration note:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
