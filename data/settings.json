@@ -1,5 +1,5 @@
 {
-  "hotkey_play": "[",
-  "hotkey_stop": "]",
-  "hotkey_pause": "\\"
+  "hotkey_play": "f8",
+  "hotkey_stop": "f10",
+  "hotkey_pause": "f9"
 }

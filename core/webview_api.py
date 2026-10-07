@@ -294,14 +294,6 @@ class JsApi:
             self._transpose_val = getattr(self._midi_engine, 'recommended_transpose', 0)
         self._track_states = {trk.index: trk.enabled for trk in self._midi_engine.tracks}
 
-        low_t = target_song.title.lower()
-        if 'river flows in you' in low_t:
-            self._speed_val = 1.20 # Calibrate 60 -> 72 BPM
-        elif '7 years' in low_t:
-            self._speed_val = 1.05 # Calibrate 120 -> 126 BPM
-        else:
-            self._speed_val = 1.0
-
         self._recompile()
 
         if auto_play:
@@ -319,8 +311,7 @@ class JsApi:
         return {
             "recommended_transpose": self._transpose_val,
             "duration": self._player_worker.total_duration,
-            "tracks": tracks_info,
-            "speed": self._speed_val
+            "tracks": tracks_info
         }
 
     def _recompile(self):

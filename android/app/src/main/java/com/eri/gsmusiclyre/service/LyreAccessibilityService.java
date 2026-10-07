@@ -46,46 +46,30 @@ public class LyreAccessibilityService extends AccessibilityService {
     }
 
     /**
-     * Dispatch a single tap gesture at (x, y) with optimal 20ms touch duration
+     * Dispatch a single tap gesture at (x, y)
      */
     public boolean tapAt(float x, float y) {
         Path path = new Path();
         path.moveTo(x, y);
         GestureDescription.StrokeDescription stroke =
-            new GestureDescription.StrokeDescription(path, 0, 20); // 20ms duration for rapid note recovery
+            new GestureDescription.StrokeDescription(path, 0, 45); // 45ms duration
         GestureDescription.Builder builder = new GestureDescription.Builder();
         builder.addStroke(stroke);
         return dispatchGesture(builder.build(), null, null);
     }
 
     /**
-     * Dispatch simultaneous multi-touch taps for chords without duplicate collisions
+     * Dispatch simultaneous multi-touch taps for chords
      */
     public boolean tapMulti(List<PointF> points) {
         if (points == null || points.isEmpty()) return false;
         GestureDescription.Builder builder = new GestureDescription.Builder();
-        List<PointF> uniquePoints = new ArrayList<>();
-
-        for (PointF pt : points) {
-            if (pt == null) continue;
-            boolean isDuplicate = false;
-            for (PointF existing : uniquePoints) {
-                if (Math.abs(existing.x - pt.x) < 5.0f && Math.abs(existing.y - pt.y) < 5.0f) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-            if (!isDuplicate) {
-                uniquePoints.add(pt);
-            }
-        }
-
-        int maxStrokes = Math.min(uniquePoints.size(), 10);
+        int maxStrokes = Math.min(points.size(), 10); // Android gesture supports up to 10 strokes
         for (int i = 0; i < maxStrokes; i++) {
-            PointF pt = uniquePoints.get(i);
+            PointF pt = points.get(i);
             Path path = new Path();
             path.moveTo(pt.x, pt.y);
-            builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 20));
+            builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 45));
         }
         return dispatchGesture(builder.build(), null, null);
     }

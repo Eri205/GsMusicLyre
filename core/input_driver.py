@@ -102,7 +102,6 @@ def press_scancodes_down(scancodes: Iterable[int]) -> None:
     stuck_sc = [sc for sc in target_sc if sc in _ACTIVE_SCANCODES]
     if stuck_sc:
         release_scancodes_up(stuck_sc)
-        time.sleep(0.002)
 
     inputs = []
     for sc in target_sc:

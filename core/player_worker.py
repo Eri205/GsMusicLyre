@@ -467,10 +467,9 @@ class PlayerWorker:
                                 next_ts = next_key_timestamps[k]
                                 gap = next_ts - target_sec
                                 if gap > 0:
-                                    # Ensure at least 18ms air gap for 60 FPS game engine input polling
-                                    effective_hold = min(base_hold_sec, max(0.010, gap - 0.018))
-                                    if gap < 0.035:
-                                        effective_hold = max(0.008, min(0.014, gap * 0.45))
+                                    effective_hold = min(base_hold_sec, max(0.016, gap - 0.012))
+                                    if gap < 0.030:
+                                        effective_hold = max(0.014, gap * 0.55)
                                 else:
                                     effective_hold = base_hold_sec
                             else:
