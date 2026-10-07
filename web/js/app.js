@@ -993,6 +993,12 @@ function selectSong(song, autoPlay = false) {
         elements.sliderTranspose.value = state.transpose;
         elements.valTranspose.textContent = `${state.transpose > 0 ? '+' : ''}${state.transpose} st`;
         elements.badgeTranspose.textContent = `${state.transpose > 0 ? '+' : ''}${state.transpose} st`;
+        if (info.speed) {
+          state.speed = info.speed;
+          if (elements.sliderSpeed) elements.sliderSpeed.value = state.speed;
+          if (elements.valSpeed) elements.valSpeed.textContent = `${state.speed.toFixed(2)}x`;
+          if (elements.badgeSpeed) elements.badgeSpeed.textContent = `${state.speed.toFixed(2)}x`;
+        }
         renderTracksList(info.tracks || []);
       }
     });

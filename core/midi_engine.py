@@ -269,6 +269,8 @@ class MidiEngine:
         current_tick = 0
         current_sec = 0.0
         tempo = 500000  # Default 120 BPM
+        initial_bpm = 120.0
+        bpm_recorded = False
 
         for abs_tick, trk_idx, msg in messages_with_track:
             delta_ticks = abs_tick - current_tick
@@ -278,7 +280,10 @@ class MidiEngine:
 
             if msg.type == 'set_tempo':
                 tempo = msg.tempo
-                self.bpm = round(mido.tempo2bpm(tempo), 1)
+                cur_bpm = round(mido.tempo2bpm(tempo), 1)
+                if not bpm_recorded:
+                    initial_bpm = cur_bpm
+                    bpm_recorded = True
 
             elif msg.type == 'note_on' and msg.velocity > 0:
                 ch = getattr(msg, 'channel', 0)
@@ -291,6 +296,7 @@ class MidiEngine:
                     track_index=trk_idx  # Exact Track Index
                 ))
 
+        self.bpm = initial_bpm
         self.duration_seconds = current_sec
         self.recommended_transpose = self.calculate_best_transpose(instrument=self.target_instrument)
 
@@ -1139,7 +1145,7 @@ class MidiEngine:
         transpose_semitones: int = 0,
         handle_accidentals: str = 'nearest',  # 'nearest', 'drop'
         enabled_tracks: Optional[Set[int]] = None,
-        chord_tolerance_sec: float = 0.028,
+        chord_tolerance_sec: float = 0.016,
         speed_factor: float = 1.0,
         instrument: str = 'genshin'
     ) -> List[PlaybackChord]:
@@ -1222,39 +1228,46 @@ class MidiEngine:
         # Genshin Lyre is capped to max 6 keys (spread across 3 octaves)
         max_keys = 3 if instrument.startswith('sky') else 6
 
-        def build_chord(ts: float, keys_set: Set[str], notes_list: List[PlaybackNote]) -> PlaybackChord:
+        def build_chord(ts: float, keys_list: List[str], notes_list: List[PlaybackNote]) -> PlaybackChord:
             # Sort keys by pitch from lowest bass to highest treble
             sorted_notes = sorted(notes_list, key=lambda n: n.transposed_pitch)
-            ordered_keys = list(dict.fromkeys(n.key for n in sorted_notes if n.key in keys_set))
+            ordered_keys = list(dict.fromkeys(n.key for n in sorted_notes if n.key in keys_list))
             if len(ordered_keys) > max_keys:
                 if instrument.startswith('sky'):
-                    ordered_keys = ordered_keys[:1] + ordered_keys[-2:]
+                    ordered_keys = ordered_keys[:1] + ordered_keys[-(max_keys-1):]
                 else:
-                    ordered_keys = ordered_keys[:2] + ordered_keys[-4:]
+                    ordered_keys = ordered_keys[:2] + ordered_keys[-(max_keys-2):]
             return PlaybackChord(timestamp=ts, keys=ordered_keys, notes=notes_list)
 
-        # Group notes that occur at practically the same moment into chords
+        # Group notes that occur at practically the same moment into chords without swallowing notes
         chords: List[PlaybackChord] = []
         if not notes_to_play:
             return chords
 
         current_chord_time = notes_to_play[0].timestamp
-        current_keys: Set[str] = set()
+        current_keys: List[str] = []
         current_notes: List[PlaybackNote] = []
 
         for p_note in notes_to_play:
-            if abs(p_note.timestamp - current_chord_time) <= chord_tolerance_sec:
-                # Same chord
-                if p_note.key not in current_keys:
-                    current_keys.add(p_note.key)
-                    current_notes.append(p_note)
-            else:
-                # Save previous chord
+            dt = p_note.timestamp - current_chord_time
+            if dt <= chord_tolerance_sec and p_note.key not in current_keys:
+                # Same chord, new unique key
+                current_keys.append(p_note.key)
+                current_notes.append(p_note)
+            elif dt <= chord_tolerance_sec and p_note.key in current_keys and dt >= 0.005:
+                # Rapid repeat of same key within tolerance window:
+                # Do NOT swallow the note! Flush existing chord and schedule subsequent note with micro-stagger
                 if current_keys:
                     chords.append(build_chord(current_chord_time, current_keys, current_notes))
-                # Start new chord
+                current_chord_time = max(p_note.timestamp, current_chord_time + 0.022)
+                current_keys = [p_note.key]
+                current_notes = [p_note]
+            elif dt > chord_tolerance_sec:
+                # Advance to next chord
+                if current_keys:
+                    chords.append(build_chord(current_chord_time, current_keys, current_notes))
                 current_chord_time = p_note.timestamp
-                current_keys = {p_note.key}
+                current_keys = [p_note.key]
                 current_notes = [p_note]
 
         # Flush final chord

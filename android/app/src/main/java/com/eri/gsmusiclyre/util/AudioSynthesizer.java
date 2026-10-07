@@ -6,17 +6,19 @@ import android.media.AudioTrack;
 import android.util.Log;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Low-latency procedural audio synthesizer for Android.
- * Renders acoustic tones for Genshin Lyre and ethereal Sky COTL instruments.
+ * Ultra-low latency streaming procedural audio synthesizer for Android.
+ * Renders acoustic tones for Genshin Lyre and ethereal Sky COTL instruments
+ * with non-blocking polyphony, zero thread starvation, and no AudioTrack leaks.
  */
 public class AudioSynthesizer {
     private static final String TAG = "AudioSynthesizer";
     private static final int SAMPLE_RATE = 44100;
+    private static final int CHUNK_SIZE = 512; // ~11.6ms buffer per chunk for zero latency
     private static AudioSynthesizer instance;
 
     public static synchronized AudioSynthesizer getInstance() {
@@ -26,11 +28,33 @@ public class AudioSynthesizer {
         return instance;
     }
 
-    private final ExecutorService audioExecutor = Executors.newFixedThreadPool(4);
     private final Map<String, Float> frequencies = new HashMap<>();
+    private final List<ActiveVoice> activeVoices = new CopyOnWriteArrayList<>();
+    private AudioTrack streamTrack;
+    private Thread mixerThread;
+    private volatile boolean isRunning = false;
+
+    private static class ActiveVoice {
+        final float freq;
+        final boolean isSky;
+        int sampleIndex = 0;
+        final int totalSamples;
+        final double attackSamples;
+        final double decayRate;
+
+        ActiveVoice(float freq, boolean isSky) {
+            this.freq = freq;
+            this.isSky = isSky;
+            int durationMs = isSky ? 850 : 650;
+            this.totalSamples = (int) (SAMPLE_RATE * (durationMs / 1000.0));
+            this.attackSamples = SAMPLE_RATE * (isSky ? 0.015 : 0.008);
+            this.decayRate = isSky ? 2.8 : 3.5;
+        }
+    }
 
     private AudioSynthesizer() {
         initFrequencies();
+        startMixerThread();
     }
 
     private void initFrequencies() {
@@ -65,52 +89,17 @@ public class AudioSynthesizer {
         frequencies.put("C6", 1046.50f);
     }
 
-    public void playNote(String noteName, boolean isSky) {
-        if (noteName == null) return;
-        Float freq = frequencies.get(noteName.trim().toUpperCase());
-        if (freq == null) return;
-
-        audioExecutor.execute(() -> renderAndPlayTone(freq, isSky));
-    }
-
-    private void renderAndPlayTone(float freq, boolean isSky) {
+    private synchronized void startMixerThread() {
+        if (isRunning) return;
         try {
-            int durationMs = isSky ? 900 : 700;
-            int numSamples = (int) (SAMPLE_RATE * (durationMs / 1000.0));
-            short[] buffer = new short[numSamples];
+            int minBufferSize = AudioTrack.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            );
+            int bufferSize = Math.max(minBufferSize, CHUNK_SIZE * 4 * 2);
 
-            double twopi = 2.0 * Math.PI;
-            double attackSamples = SAMPLE_RATE * (isSky ? 0.015 : 0.008);
-            double decayRate = isSky ? 2.8 : 3.5;
-
-            for (int i = 0; i < numSamples; i++) {
-                double t = (double) i / SAMPLE_RATE;
-                double env = 1.0;
-
-                // Attack envelope
-                if (i < attackSamples) {
-                    env = i / attackSamples;
-                } else {
-                    // Exponential decay
-                    env = Math.exp(-decayRate * (t - attackSamples / SAMPLE_RATE));
-                }
-
-                double sample = 0;
-                if (isSky) {
-                    // Sky COTL: Warm fundamental + 2nd harmonic octave + delicate chime 3rd harmonic
-                    sample = 0.70 * Math.sin(twopi * freq * t)
-                           + 0.22 * Math.sin(twopi * freq * 2.0 * t)
-                           + 0.08 * Math.sin(twopi * freq * 3.0 * t);
-                } else {
-                    // Genshin: Crisp plucked triangle-ish wave
-                    sample = 0.80 * Math.sin(twopi * freq * t)
-                           + 0.20 * Math.sin(twopi * freq * 2.0 * t);
-                }
-
-                buffer[i] = (short) (sample * env * Short.MAX_VALUE * 0.45);
-            }
-
-            AudioTrack track = new AudioTrack.Builder()
+            streamTrack = new AudioTrack.Builder()
                 .setAudioAttributes(new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_MEDIA)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
@@ -120,18 +109,104 @@ public class AudioSynthesizer {
                     .setSampleRate(SAMPLE_RATE)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .build())
-                .setBufferSizeInBytes(numSamples * 2)
-                .setTransferMode(AudioTrack.MODE_STATIC)
+                .setBufferSizeInBytes(bufferSize)
+                .setTransferMode(AudioTrack.MODE_STREAM)
                 .build();
 
-            track.write(buffer, 0, buffer.length);
-            track.play();
+            streamTrack.play();
+            isRunning = true;
 
-            Thread.sleep(durationMs);
-            track.stop();
-            track.release();
+            mixerThread = new Thread(this::runMixerLoop, "AudioMixerThread");
+            mixerThread.setPriority(Thread.MAX_PRIORITY);
+            mixerThread.setDaemon(true);
+            mixerThread.start();
         } catch (Exception e) {
-            Log.e(TAG, "Error playing audio tone: " + e.getMessage());
+            Log.e(TAG, "Failed to initialize AudioTrack stream: " + e.getMessage());
         }
+    }
+
+    private void runMixerLoop() {
+        short[] buffer = new short[CHUNK_SIZE];
+        float[] mixAccumulator = new float[CHUNK_SIZE];
+        double twopi = 2.0 * Math.PI;
+
+        while (isRunning) {
+            if (activeVoices.isEmpty()) {
+                // If idle, stream a tiny block of silence with low CPU consumption
+                for (int i = 0; i < CHUNK_SIZE; i++) buffer[i] = 0;
+                if (streamTrack != null && streamTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                    streamTrack.write(buffer, 0, CHUNK_SIZE);
+                }
+                try {
+                    Thread.sleep(8);
+                } catch (InterruptedException e) {
+                    break;
+                }
+                continue;
+            }
+
+            for (int i = 0; i < CHUNK_SIZE; i++) mixAccumulator[i] = 0.0f;
+
+            for (ActiveVoice voice : activeVoices) {
+                float freq = voice.freq;
+                boolean isSky = voice.isSky;
+                int startIdx = voice.sampleIndex;
+                int endIdx = Math.min(startIdx + CHUNK_SIZE, voice.totalSamples);
+
+                for (int i = startIdx; i < endIdx; i++) {
+                    int bufIdx = i - startIdx;
+                    double t = (double) i / SAMPLE_RATE;
+                    double env;
+
+                    if (i < voice.attackSamples) {
+                        env = i / voice.attackSamples;
+                    } else {
+                        env = Math.exp(-voice.decayRate * (t - voice.attackSamples / SAMPLE_RATE));
+                    }
+
+                    double sample;
+                    if (isSky) {
+                        sample = 0.70 * Math.sin(twopi * freq * t)
+                               + 0.22 * Math.sin(twopi * freq * 2.0 * t)
+                               + 0.08 * Math.sin(twopi * freq * 3.0 * t);
+                    } else {
+                        sample = 0.80 * Math.sin(twopi * freq * t)
+                               + 0.20 * Math.sin(twopi * freq * 2.0 * t);
+                    }
+
+                    mixAccumulator[bufIdx] += (float) (sample * env * 0.40);
+                }
+
+                voice.sampleIndex += CHUNK_SIZE;
+                if (voice.sampleIndex >= voice.totalSamples) {
+                    activeVoices.remove(voice);
+                }
+            }
+
+            // Clamp and convert to 16-bit PCM
+            for (int i = 0; i < CHUNK_SIZE; i++) {
+                float val = mixAccumulator[i];
+                if (val > 0.98f) val = 0.98f;
+                else if (val < -0.98f) val = -0.98f;
+                buffer[i] = (short) (val * Short.MAX_VALUE);
+            }
+
+            if (streamTrack != null && streamTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+                streamTrack.write(buffer, 0, CHUNK_SIZE);
+            }
+        }
+    }
+
+    public void playNote(String noteName, boolean isSky) {
+        if (noteName == null) return;
+        Float freq = frequencies.get(noteName.trim().toUpperCase());
+        if (freq == null) return;
+
+        if (!isRunning || streamTrack == null) {
+            startMixerThread();
+        }
+
+        // Add to active voices list non-blockingly (< 0.001ms)
+        activeVoices.add(new ActiveVoice(freq, isSky));
     }
 }

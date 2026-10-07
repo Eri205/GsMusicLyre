@@ -113,8 +113,9 @@ public class AutoPlayerEngine {
     private void runPlaybackLoop() {
         List<NoteEvent> events = currentSong.getEvents();
         double totalDuration = currentSong.getDuration();
-        long startRealTime = System.currentTimeMillis();
+        long startNanoTime = System.nanoTime();
         double startSongPos = currentPositionSec;
+        double lastProgressTime = startSongPos;
 
         int nextIndex = 0;
         while (nextIndex < events.size() && events.get(nextIndex).getTime() < startSongPos) {
@@ -129,7 +130,7 @@ public class AutoPlayerEngine {
                             wait();
                         }
                     }
-                    startRealTime = System.currentTimeMillis();
+                    startNanoTime = System.nanoTime();
                     startSongPos = currentPositionSec;
                 } catch (InterruptedException e) {
                     break;
@@ -138,24 +139,55 @@ public class AutoPlayerEngine {
 
             if (!isRunning) break;
 
-            long elapsedMillis = System.currentTimeMillis() - startRealTime;
-            double currentSongTime = startSongPos + (elapsedMillis / 1000.0) * speed;
+            long elapsedNanos = System.nanoTime() - startNanoTime;
+            double currentSongTime = startSongPos + (elapsedNanos / 1_000_000_000.0) * speed;
             this.currentPositionSec = currentSongTime;
 
-            notifyProgress(currentSongTime, totalDuration);
+            // Throttle progress updates to UI (~25 FPS / 40ms) to avoid flooding MainLooper
+            if (currentSongTime - lastProgressTime >= 0.040) {
+                lastProgressTime = currentSongTime;
+                notifyProgress(currentSongTime, totalDuration);
+            }
 
             NoteEvent ev = events.get(nextIndex);
             if (currentSongTime >= ev.getTime()) {
-                // Time to trigger notes!
-                dispatchNotes(ev.getNotes());
+                // Batch all notes occurring within chord window (< 16ms) into a single simultaneous gesture
+                List<String> chordNotes = new ArrayList<>(ev.getNotes());
+                double chordBaseTime = ev.getTime();
                 nextIndex++;
-            } else {
-                long sleepMs = (long) Math.max(1, ((ev.getTime() - currentSongTime) / speed) * 1000.0);
-                try {
-                    Thread.sleep(Math.min(sleepMs, 20)); // Sleep in small chunks for responsive pause/stop
-                } catch (InterruptedException e) {
-                    break;
+
+                while (nextIndex < events.size()) {
+                    NoteEvent nextEv = events.get(nextIndex);
+                    if (Math.abs(nextEv.getTime() - chordBaseTime) <= 0.016) {
+                        for (String n : nextEv.getNotes()) {
+                            if (!chordNotes.contains(n)) {
+                                chordNotes.add(n);
+                            }
+                        }
+                        nextIndex++;
+                    } else {
+                        break;
+                    }
                 }
+
+                dispatchNotes(chordNotes);
+            } else {
+                double remainingSec = (ev.getTime() - currentSongTime) / speed;
+                long remainingMs = (long) (remainingSec * 1000.0);
+                if (remainingMs > 12) {
+                    try {
+                        Thread.sleep(Math.min(remainingMs - 8, 15));
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                } else if (remainingMs > 2) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        break;
+                    }
+                }
+                // Under 2ms: spin-wait with zero latency for exact note trigger
             }
         }
 

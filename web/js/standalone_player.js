@@ -341,6 +341,10 @@ class ClientSheetParser {
     const isDivisionInTicks = (timeDivision & 0x8000) === 0;
     const ticksPerBeat = isDivisionInTicks ? timeDivision : 480;
 
+    // Natural diatonic pitch classes in C Major / A Minor
+    const NATURAL_PITCH_CLASSES = new Set([0, 2, 4, 5, 7, 9, 11]);
+    const NEAREST_NATURAL_CLASS = { 1: 0, 3: 2, 6: 5, 8: 7, 10: 9 };
+
     // Mapping MIDI pitch -> Genshin key (48: C3 to 83: B5)
     const MIDI_TO_GENSHIN = {
       48: 'Z', 50: 'X', 52: 'C', 53: 'V', 55: 'B', 57: 'N', 59: 'M',
@@ -348,8 +352,7 @@ class ClientSheetParser {
       72: 'Q', 74: 'W', 76: 'E', 77: 'R', 79: 'T', 81: 'Y', 83: 'U'
     };
 
-    let allNotes = [];
-    let currentTempoMicros = 500000; // default 120 bpm
+    const allEvents = []; // { ticks, type, data }
 
     for (let t = 0; t < numTracks; t++) {
       if (offset >= data.byteLength) break;
@@ -384,13 +387,14 @@ class ClientSheetParser {
         }
 
         const eventType = statusByte >> 4;
+        const channel = statusByte & 0x0F;
 
         if (eventType === 0x9) {
           // Note On
           const note = data.getUint8(offset++);
           const velocity = data.getUint8(offset++);
           if (velocity > 0) {
-            allNotes.push({ ticks: trackTicks, note: note });
+            allEvents.push({ ticks: trackTicks, type: 'note_on', note: note, velocity: velocity, channel: channel, track: t });
           }
         } else if (eventType === 0x8) {
           // Note Off
@@ -411,7 +415,8 @@ class ClientSheetParser {
 
           if (metaType === 0x51 && metaLen === 3) {
             // Set Tempo
-            currentTempoMicros = (data.getUint8(offset) << 16) | (data.getUint8(offset + 1) << 8) | data.getUint8(offset + 2);
+            const tempoVal = (data.getUint8(offset) << 16) | (data.getUint8(offset + 1) << 8) | data.getUint8(offset + 2);
+            allEvents.push({ ticks: trackTicks, type: 'set_tempo', tempo: tempoVal });
           }
           offset += metaLen;
         } else if (statusByte === 0xF0 || statusByte === 0xF7) {
@@ -427,36 +432,139 @@ class ClientSheetParser {
       }
     }
 
-    // Sort notes by timestamp
-    allNotes.sort((a, b) => a.ticks - b.ticks);
+    // Sort all events by ticks, prioritizing tempo changes
+    allEvents.sort((a, b) => {
+      if (a.ticks !== b.ticks) return a.ticks - b.ticks;
+      return a.type === 'set_tempo' ? -1 : 1;
+    });
 
-    const secondsPerTick = (currentTempoMicros / 1000000.0) / ticksPerBeat;
-    const bpm = Math.round(60000000 / currentTempoMicros);
+    // Dynamic Tempo timeline to seconds conversion
+    let curTicks = 0;
+    let curSec = 0.0;
+    let tempoMicros = 500000; // default 120 bpm
+    let dominantBpm = 120.0;
+    let bpmRecorded = false;
+    const rawNotes = [];
 
-    // Group into chords within 25ms threshold
-    const chordMap = new Map();
-    for (const n of allNotes) {
-      const timeSec = Math.round((n.ticks * secondsPerTick) * 40) / 40; // quantize to 25ms
-      let mappedKey = MIDI_TO_GENSHIN[n.note];
-      if (!mappedKey) {
-        // Octave wrap
-        const wrappedNote = ((n.note - 48) % 12) + 60;
-        mappedKey = MIDI_TO_GENSHIN[wrappedNote] || 'A';
+    for (const ev of allEvents) {
+      const delta = ev.ticks - curTicks;
+      if (delta > 0) {
+        curSec += (delta * tempoMicros) / (ticksPerBeat * 1000000.0);
+        curTicks = ev.ticks;
       }
 
-      if (!chordMap.has(timeSec)) {
-        chordMap.set(timeSec, new Set());
+      if (ev.type === 'set_tempo') {
+        tempoMicros = ev.tempo;
+        const curBpm = Math.round((60000000.0 / tempoMicros) * 10) / 10;
+        if (!bpmRecorded) {
+          dominantBpm = curBpm;
+          bpmRecorded = true;
+        }
+      } else if (ev.type === 'note_on') {
+        rawNotes.push({
+          time: curSec,
+          pitch: ev.note,
+          velocity: ev.velocity,
+          channel: ev.channel
+        });
       }
-      chordMap.get(timeSec).add(mappedKey);
     }
 
-    const chords = [];
-    chordMap.forEach((keysSet, timeSec) => {
-      chords.push([timeSec, Array.from(keysSet)]);
-    });
-    chords.sort((a, b) => a[0] - b[0]);
+    // Filter out drum channel (channel 9) unless only channel 9 exists
+    const hasMelodic = rawNotes.some(n => n.channel !== 9);
+    const melodicNotes = hasMelodic ? rawNotes.filter(n => n.channel !== 9) : rawNotes;
 
-    const duration = chords.length > 0 ? chords[chords.length - 1][0] + 1.5 : 30.0;
+    // Calculate Best Transpose (-12 to +12)
+    let bestShift = 0;
+    let bestScore = -1e9;
+    for (let shift = -12; shift <= 12; shift++) {
+      let naturalCount = 0;
+      let inRangeCount = 0;
+      let foldedDownCount = 0;
+
+      for (const n of melodicNotes) {
+        const shifted = n.pitch + shift;
+        if (NATURAL_PITCH_CLASSES.has(((shifted % 12) + 12) % 12)) {
+          naturalCount++;
+        }
+        if (shifted >= 48 && shifted <= 83) {
+          inRangeCount++;
+        } else if (shifted > 83) {
+          foldedDownCount++;
+        }
+      }
+
+      const score = (naturalCount * 1000) - (foldedDownCount * 30) + (inRangeCount * 2) - (Math.abs(shift) * 3) + (shift === 0 ? 50 : 0);
+      if (score > bestScore) {
+        bestScore = score;
+        bestShift = shift;
+      }
+    }
+
+    // Process Playable Notes with nearest accidental mapping and octave folding
+    const playableNotes = [];
+    for (const n of melodicNotes) {
+      let p = n.pitch + bestShift;
+      let pc = ((p % 12) + 12) % 12;
+
+      if (!NATURAL_PITCH_CLASSES.has(pc)) {
+        const targetClass = NEAREST_NATURAL_CLASS[pc] !== undefined ? NEAREST_NATURAL_CLASS[pc] : pc;
+        p += targetClass - pc;
+      }
+
+      while (p < 48) p += 12;
+      while (p > 83) p -= 12;
+
+      const key = MIDI_TO_GENSHIN[p];
+      if (key) {
+        playableNotes.push({
+          timestamp: n.time,
+          key: key,
+          pitch: p
+        });
+      }
+    }
+
+    playableNotes.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Build chords without swallowing notes (16ms tolerance + micro-stagger for rapid repeats)
+    const chords = [];
+    if (playableNotes.length > 0) {
+      let curChordTime = playableNotes[0].timestamp;
+      let curKeys = [];
+      let curNotes = [];
+
+      function commitChord(ts, kList, nList) {
+        const sorted = nList.slice().sort((a, b) => a.pitch - b.pitch);
+        const ordered = Array.from(new Set(sorted.map(x => x.key).filter(k => kList.includes(k))));
+        const finalKeys = ordered.length > 6 ? ordered.slice(0, 2).concat(ordered.slice(-4)) : ordered;
+        chords.push([Math.round(ts * 1000) / 1000, finalKeys]);
+      }
+
+      for (const pn of playableNotes) {
+        const dt = pn.timestamp - curChordTime;
+        if (dt <= 0.016 && !curKeys.includes(pn.key)) {
+          curKeys.push(pn.key);
+          curNotes.push(pn);
+        } else if (dt <= 0.016 && curKeys.includes(pn.key) && dt >= 0.005) {
+          if (curKeys.length > 0) commitChord(curChordTime, curKeys, curNotes);
+          curChordTime = Math.max(pn.timestamp, curChordTime + 0.022);
+          curKeys = [pn.key];
+          curNotes = [pn];
+        } else if (dt > 0.016) {
+          if (curKeys.length > 0) commitChord(curChordTime, curKeys, curNotes);
+          curChordTime = pn.timestamp;
+          curKeys = [pn.key];
+          curNotes = [pn];
+        }
+      }
+
+      if (curKeys.length > 0) {
+        commitChord(curChordTime, curKeys, curNotes);
+      }
+    }
+
+    const duration = chords.length > 0 ? chords[chords.length - 1][0] + 1.2 : 30.0;
     const title = filename.replace(/\.[^/.]+$/, '');
 
     return {
@@ -464,11 +572,12 @@ class ClientSheetParser {
       title: title,
       artist_or_game: 'Mobile Imported',
       category: 'Custom',
-      bpm: bpm || 120,
+      bpm: Math.round(dominantBpm) || 120,
       duration_seconds: Math.round(duration * 10) / 10,
-      note_count: allNotes.length,
-      recommended_transpose: 0,
-      chords: chords
+      note_count: playableNotes.length,
+      recommended_transpose: bestShift,
+      chords: chords,
+      events: chords.map(c => ({ time: c[0], notes: c[1] }))
     };
   }
 }

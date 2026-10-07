@@ -209,13 +209,39 @@ class LibraryManager:
             return False
 
     def _extract_song_info(self, filename: str, filepath: str, is_custom: bool = False) -> Optional[SongItem]:
-        import unicodedata
+        import unicodedata, re
         song_id = unicodedata.normalize('NFC', os.path.splitext(filename)[0]).strip()
         
         # Categorize by prefix or directory
         category = "Custom" if is_custom else "Classic"
         clean_title = unicodedata.normalize('NFC', song_id.replace("_", " "))
+        for ext in ('.mid', '.midi', '.txt', '.json', '.skysheet'):
+            if clean_title.lower().endswith(ext):
+                clean_title = clean_title[:-len(ext)].strip()
+        clean_title = re.sub(r'\[.*?\]|\(.*?\.(?:com|net|org)\)', '', clean_title).strip()
         artist = "Imported / Custom" if is_custom else "Various"
+
+        # Known song metadata matching
+        KNOWN_SONGS = {
+            '7 years': ('7 Years - Lukas Graham', 'Lukas Graham', 'Pop / Meme'),
+            'river flows in you': ('River Flows in You - Yiruma', 'Yiruma', 'Classical'),
+            'call of silence(简化)': ('Call of Silence (Giản hóa)', 'Hiroyuki Sawano', 'Anime & OST'),
+            'call of silence': ('Call of Silence', 'Hiroyuki Sawano (Attack on Titan)', 'Anime & OST'),
+            'golden hour': ('JVKE - Golden Hour', 'JVKE', 'Pop / Meme'),
+            'merry christmas mr. lawrence': ('Merry Christmas Mr. Lawrence', 'Ryuichi Sakamoto', 'Classical'),
+            'nơi này có anh': ('Nơi này có anh', 'Sơn Tùng M-TP', 'Pop / Meme'),
+            'quoc ca viet nam': ('Tiến Quân Ca (Quốc Ca Việt Nam)', 'Văn Cao', 'Classical'),
+            'silvermoon hall': ('Silvermoon Hall (銀月の庭)', 'Genshin Impact / HoYo-MiX', 'Genshin Impact'),
+            'thiên lý ơi': ('Thiên lý ơi', 'J97', 'Pop / Meme')
+        }
+
+        low_name = filename.lower()
+        for k, (t_title, t_art, t_cat) in KNOWN_SONGS.items():
+            if k in low_name:
+                clean_title = t_title
+                artist = t_art
+                category = t_cat
+                break
 
         if not is_custom:
             clean_name = filename.replace(".midi", "").replace(".mid", "").replace(".txt", "").replace(".json", "").replace(".skysheet", "")
@@ -235,8 +261,6 @@ class LibraryManager:
                 category = "Pop / Meme"
                 clean_title = clean_name.replace("Meme_", "").replace("_", " ")
                 artist = "Vicetone & Tony Igy"
-            else:
-                clean_title = clean_name.replace("_", " ")
 
         # Check metadata cache for instant sub-millisecond file loading
         try:
