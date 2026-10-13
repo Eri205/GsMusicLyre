@@ -3,12 +3,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Node / Web Frontend
+node_modules/
+.npm/
+
 # PyInstaller / Build Artifacts
 build/
 dist/
 dist_build/
 build_temp/
 *.manifest
+*.old
+*.old.exe
 
 # Compressed Archives
 *.rar

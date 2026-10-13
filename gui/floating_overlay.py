@@ -1,23 +1,26 @@
 """
 gui/floating_overlay.py
-Always-On-Top Draggable Floating Mini-Player for in-game control over Genshin Impact and Sky COTL.
-Provides instant overlay controls, compact pill mode, live speed tuning, opacity cycling,
-always-on-top toggle, and two-way synchronization with the main studio app.
+Tactical Floating HUD / Compact In-Game Widget for GsMusicLyre.
+Designed with OLED Matte Dark Mode (#0D0E12), thin hairline borders,
+sleek mini progress bar, refined micro-controls, and tactile keycap badges [F8], [F10], [F11].
 """
 
 import tkinter as tk
 import customtkinter as ctk
 from typing import Optional, Callable
 
-COLOR_OVERLAY_BG = "#160E1A"
-COLOR_HEADER_BG = "#221428"
-COLOR_CYAN = "#FFA7C5"
-COLOR_GOLD = "#FFA7C5"
-COLOR_GOLD_HOVER = "#FFBCD0"
-COLOR_TEXT_MAIN = "#FFF5F8"
-COLOR_TEXT_MUTED = "#D5C2D7"
-COLOR_BTN_BG = "#222436"
-COLOR_BTN_HOVER = "#30344D"
+# Tactical OLED Color Palette (Synchronized with Main Studio App)
+COLOR_OVERLAY_BG = "#0D0E12"
+COLOR_HEADER_BG = "#12141D"
+COLOR_SURFACE = "#171924"
+COLOR_BORDER = "#222534"
+COLOR_CORAL = "#FF4D6D"
+COLOR_CORAL_HOVER = "#FF6B85"
+COLOR_CYAN = "#00F2FE"
+COLOR_TEXT_MAIN = "#FFFFFF"
+COLOR_TEXT_MUTED = "#8E92A0"
+COLOR_BTN_BG = "#191C28"
+COLOR_BTN_HOVER = "#25293B"
 
 
 class FloatingOverlay(ctk.CTkToplevel):
@@ -37,13 +40,13 @@ class FloatingOverlay(ctk.CTkToplevel):
         self.on_speed_change = on_speed_change
 
         # Window properties
-        self.title("GsMusicLyre In-Game Overlay")
-        self.geometry("380x190+100+100")
+        self.title("GsMusicLyre Tactical HUD")
+        self.geometry("340x136+80+80")
         self.resizable(False, False)
         self.attributes('-topmost', True)
         self.configure(fg_color=COLOR_OVERLAY_BG)
 
-        # Remove standard OS titlebar for sleek gaming overlay look
+        # Frameless floating widget style
         self.overrideredirect(True)
 
         # State tracking
@@ -82,19 +85,24 @@ class FloatingOverlay(ctk.CTkToplevel):
         self.geometry(f"+{new_x}+{new_y}")
 
     def _build_header(self):
-        """Standard expanded header with title and action buttons."""
-        self.header_frame = ctk.CTkFrame(self, fg_color=COLOR_HEADER_BG, height=32, corner_radius=0)
+        """Minimalist top hairline header."""
+        self.header_frame = ctk.CTkFrame(
+            self,
+            fg_color=COLOR_HEADER_BG,
+            height=28,
+            corner_radius=0
+        )
         self.header_frame.pack(fill="x", side="top")
         self.header_frame.pack_propagate(False)
 
-        # Left Icon & Title
+        # Left HUD Status Tag
         left_box = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         left_box.pack(side="left", padx=8)
 
         self.title_label = ctk.CTkLabel(
             left_box,
-            text="✨ GsMusicLyre Overlay",
-            font=ctk.CTkFont(size=11, weight="bold"),
+            text="⚡ IN-GAME HUD",
+            font=ctk.CTkFont(family="Consolas", size=10, weight="bold"),
             text_color=COLOR_CYAN
         )
         self.title_label.pack(side="left")
@@ -103,92 +111,102 @@ class FloatingOverlay(ctk.CTkToplevel):
         actions_box = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         actions_box.pack(side="right", padx=6)
 
-        # Pin / Always on Top button
+        # Pin / Always-On-Top
         self.btn_pin = ctk.CTkButton(
             actions_box,
             text="📌",
-            font=ctk.CTkFont(size=11),
-            width=26,
-            height=22,
-            fg_color="#3D1E32",
-            hover_color="#522744",
+            font=ctk.CTkFont(size=10),
+            width=22,
+            height=20,
+            fg_color="#1F2332",
+            hover_color="#2B3045",
             text_color=COLOR_CYAN,
+            corner_radius=4,
             command=self._toggle_pin
         )
-        self.btn_pin.pack(side="left", padx=2)
+        self.btn_pin.pack(side="left", padx=1)
 
-        # Opacity button (% readout)
+        # Opacity button
         self.btn_trans = ctk.CTkButton(
             actions_box,
-            text=f"👁 {int(self.current_opacity*100)}%",
-            font=ctk.CTkFont(size=10, weight="bold"),
-            width=54,
-            height=22,
+            text=f"{int(self.current_opacity*100)}%",
+            font=ctk.CTkFont(family="Consolas", size=9, weight="bold"),
+            width=36,
+            height=20,
             fg_color="transparent",
-            hover_color="#2D3045",
-            text_color=COLOR_TEXT_MAIN,
+            hover_color="#1F2332",
+            text_color=COLOR_TEXT_MUTED,
+            corner_radius=4,
             command=self._cycle_opacity
         )
-        self.btn_trans.pack(side="left", padx=2)
+        self.btn_trans.pack(side="left", padx=1)
 
         # Compact toggle button
         self.btn_compact = ctk.CTkButton(
             actions_box,
             text="—",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            width=26,
-            height=22,
+            font=ctk.CTkFont(size=10, weight="bold"),
+            width=22,
+            height=20,
             fg_color="transparent",
-            hover_color="#2D3045",
-            text_color=COLOR_TEXT_MAIN,
+            hover_color="#1F2332",
+            text_color=COLOR_TEXT_MUTED,
+            corner_radius=4,
             command=self.toggle_compact
         )
-        self.btn_compact.pack(side="left", padx=2)
+        self.btn_compact.pack(side="left", padx=1)
 
-        # Close overlay button
+        # Close button
         btn_close = ctk.CTkButton(
             actions_box,
             text="✕",
-            font=ctk.CTkFont(size=11, weight="bold"),
-            width=26,
-            height=22,
+            font=ctk.CTkFont(size=10),
+            width=22,
+            height=20,
             fg_color="transparent",
             hover_color="#B91C1C",
-            text_color=COLOR_TEXT_MAIN,
+            text_color=COLOR_TEXT_MUTED,
+            corner_radius=4,
             command=self.hide_overlay
         )
-        btn_close.pack(side="left", padx=2)
+        btn_close.pack(side="left", padx=1)
 
     def _build_compact_frame(self):
-        """Compact Pill layout: 380x42 mini in-game bar with title, time, play/pause and expand."""
-        self.compact_frame = ctk.CTkFrame(self, fg_color=COLOR_HEADER_BG, height=42, corner_radius=10)
-        # Initially not packed
+        """Ultra-Compact Pill mode (320x36)."""
+        self.compact_frame = ctk.CTkFrame(
+            self,
+            fg_color=COLOR_OVERLAY_BG,
+            height=36,
+            corner_radius=8,
+            border_width=1,
+            border_color=COLOR_BORDER
+        )
 
         # Left mini play button
         self.btn_compact_play = ctk.CTkButton(
             self.compact_frame,
             text="▶",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=COLOR_GOLD,
-            hover_color=COLOR_GOLD_HOVER,
-            text_color="#12121A",
-            width=32,
-            height=28,
-            corner_radius=6,
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color=COLOR_CORAL,
+            hover_color=COLOR_CORAL_HOVER,
+            text_color="#FFFFFF",
+            width=26,
+            height=24,
+            corner_radius=4,
             command=self._on_play
         )
-        self.btn_compact_play.pack(side="left", padx=(8, 6), pady=7)
+        self.btn_compact_play.pack(side="left", padx=(6, 6), pady=6)
 
-        # Center: Song title & time
+        # Center Title & Time
         center_box = ctk.CTkFrame(self.compact_frame, fg_color="transparent")
-        center_box.pack(side="left", fill="both", expand=True, pady=4)
+        center_box.pack(side="left", fill="both", expand=True, pady=2)
         self._bind_drag(center_box)
 
         self.lbl_compact_title = ctk.CTkLabel(
             center_box,
-            text="🎵 No Song Loaded",
-            font=ctk.CTkFont(size=11, weight="bold"),
-            text_color=COLOR_GOLD,
+            text="No Song Loaded",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color=COLOR_TEXT_MAIN,
             anchor="w"
         )
         self.lbl_compact_title.pack(fill="x")
@@ -196,173 +214,186 @@ class FloatingOverlay(ctk.CTkToplevel):
         self.lbl_compact_time = ctk.CTkLabel(
             center_box,
             text="00:00 / 00:00",
-            font=ctk.CTkFont(size=10),
+            font=ctk.CTkFont(family="Consolas", size=8),
             text_color=COLOR_TEXT_MUTED,
             anchor="w"
         )
         self.lbl_compact_time.pack(fill="x")
         self._bind_drag(self.lbl_compact_time)
 
-        # Right mini controls: Next, Expand, Close
+        # Right buttons
         right_box = ctk.CTkFrame(self.compact_frame, fg_color="transparent")
         right_box.pack(side="right", padx=(2, 6))
 
         self.btn_compact_next = ctk.CTkButton(
             right_box,
             text="⏭",
-            font=ctk.CTkFont(size=10),
-            width=24,
-            height=26,
+            font=ctk.CTkFont(size=9),
+            width=20,
+            height=22,
             fg_color=COLOR_BTN_BG,
             hover_color=COLOR_BTN_HOVER,
+            corner_radius=3,
             command=self._on_next
         )
-        self.btn_compact_next.pack(side="left", padx=2)
+        self.btn_compact_next.pack(side="left", padx=1)
 
         self.btn_compact_expand = ctk.CTkButton(
             right_box,
             text="⛶",
-            font=ctk.CTkFont(size=11, weight="bold"),
-            width=24,
-            height=26,
+            font=ctk.CTkFont(size=9),
+            width=20,
+            height=22,
             fg_color="transparent",
-            hover_color="#2D3045",
+            hover_color="#1F2332",
+            corner_radius=3,
             command=self.toggle_compact
         )
-        self.btn_compact_expand.pack(side="left", padx=2)
+        self.btn_compact_expand.pack(side="left", padx=1)
 
         self.btn_compact_close = ctk.CTkButton(
             right_box,
             text="✕",
-            font=ctk.CTkFont(size=10, weight="bold"),
-            width=24,
-            height=26,
+            font=ctk.CTkFont(size=9),
+            width=20,
+            height=22,
             fg_color="transparent",
             hover_color="#B91C1C",
+            corner_radius=3,
             command=self.hide_overlay
         )
-        self.btn_compact_close.pack(side="left", padx=2)
+        self.btn_compact_close.pack(side="left", padx=1)
 
     def _build_body(self):
-        """Expanded player body with full controls and scrubber."""
-        self.body_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.body_frame.pack(fill="both", expand=True, padx=12, pady=6)
+        """Refined Tactical HUD expanded body."""
+        self.body_frame = ctk.CTkFrame(
+            self,
+            fg_color="transparent",
+            corner_radius=0
+        )
+        self.body_frame.pack(fill="both", expand=True, padx=10, pady=(4, 6))
 
-        # Row 1: Song Title
+        # Row 1: Song Title + Time display
+        title_row = ctk.CTkFrame(self.body_frame, fg_color="transparent")
+        title_row.pack(fill="x", pady=(0, 2))
+
         self.lbl_song_title = ctk.CTkLabel(
-            self.body_frame,
-            text="🎵 No Song Loaded",
-            font=ctk.CTkFont(size=13, weight="bold"),
-            text_color=COLOR_GOLD,
+            title_row,
+            text="No Song Loaded",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            text_color=COLOR_TEXT_MAIN,
             anchor="w"
         )
-        self.lbl_song_title.pack(fill="x", pady=(2, 2))
-
-        # Row 2: Progress Slider + Time Display
-        time_box = ctk.CTkFrame(self.body_frame, fg_color="transparent")
-        time_box.pack(fill="x", pady=2)
+        self.lbl_song_title.pack(side="left", fill="x", expand=True)
 
         self.lbl_time = ctk.CTkLabel(
-            time_box,
+            title_row,
             text="00:00 / 00:00",
-            font=ctk.CTkFont(size=11),
+            font=ctk.CTkFont(family="Consolas", size=9),
             text_color=COLOR_TEXT_MUTED
         )
-        self.lbl_time.pack(side="right", padx=(6, 0))
+        self.lbl_time.pack(side="right")
 
+        # Row 2: Hairline Sleek Progress Slider
         self.slider = ctk.CTkSlider(
-            time_box,
+            self.body_frame,
             from_=0.0,
             to=100.0,
-            height=12,
-            progress_color=COLOR_CYAN,
+            height=8,
+            progress_color=COLOR_CORAL,
             button_color=COLOR_CYAN,
-            button_hover_color=COLOR_GOLD_HOVER,
+            button_hover_color="#5FF7FE",
+            fg_color="#181B26",
             command=self._on_seek
         )
-        self.slider.pack(side="left", fill="x", expand=True)
+        self.slider.pack(fill="x", pady=(2, 6))
 
-        # Row 3: Playback Controls (Prev, Play/Pause, Stop, Next)
+        # Row 3: Playback Controls (Prev, Play Pill, Stop, Next, Speed)
         ctrl_row = ctk.CTkFrame(self.body_frame, fg_color="transparent")
-        ctrl_row.pack(fill="x", pady=(4, 6))
+        ctrl_row.pack(fill="x", pady=(0, 4))
 
         self.btn_prev = ctk.CTkButton(
             ctrl_row,
             text="⏮",
-            font=ctk.CTkFont(size=12),
-            width=36,
-            height=30,
-            fg_color=COLOR_BTN_BG,
+            font=ctk.CTkFont(size=11),
+            width=30,
+            height=28,
+            fg_color="#181B26",
             hover_color=COLOR_BTN_HOVER,
+            corner_radius=14,
             command=self._on_prev
         )
-        self.btn_prev.pack(side="left", padx=(0, 6))
+        self.btn_prev.pack(side="left", padx=(0, 5))
 
+        # Refined Pill-shaped Play Button
         self.btn_play = ctk.CTkButton(
             ctrl_row,
             text="▶ Play",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=COLOR_GOLD,
-            hover_color=COLOR_GOLD_HOVER,
-            text_color="#12121A",
-            height=30,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color=COLOR_CORAL,
+            hover_color=COLOR_CORAL_HOVER,
+            text_color="#FFFFFF",
+            height=28,
+            corner_radius=14,
             command=self._on_play
         )
-        self.btn_play.pack(side="left", fill="x", expand=True, padx=(0, 6))
+        self.btn_play.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
+        # Balanced Symmetrical Stop Button
         self.btn_stop = ctk.CTkButton(
             ctrl_row,
             text="⏹ Stop",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#3B2027",
-            hover_color="#572B36",
-            text_color="#FFA4A4",
-            width=65,
-            height=30,
+            font=ctk.CTkFont(size=10, weight="bold"),
+            fg_color="#1C1F2E",
+            hover_color="#361D27",
+            text_color="#FF8A9E",
+            border_width=1,
+            border_color="#2A2E42",
+            width=64,
+            height=28,
+            corner_radius=14,
             command=self._on_stop
         )
-        self.btn_stop.pack(side="left", padx=(0, 6))
+        self.btn_stop.pack(side="left", padx=(0, 5))
 
         self.btn_next = ctk.CTkButton(
             ctrl_row,
             text="⏭",
-            font=ctk.CTkFont(size=12),
-            width=36,
-            height=30,
-            fg_color=COLOR_BTN_BG,
+            font=ctk.CTkFont(size=11),
+            width=30,
+            height=28,
+            fg_color="#181B26",
             hover_color=COLOR_BTN_HOVER,
+            corner_radius=14,
             command=self._on_next
         )
-        self.btn_next.pack(side="left")
+        self.btn_next.pack(side="left", padx=(0, 5))
 
-        # Row 4: Quick Tuning Badges (Speed button & Hotkey reminder)
-        badge_row = ctk.CTkFrame(self.body_frame, fg_color="transparent")
-        badge_row.pack(fill="x")
-
-        play_k = getattr(self.player_worker, 'hotkey_play', '1')
-        stop_k = getattr(self.player_worker, 'hotkey_stop', '2')
-        self.lbl_hotkeys = ctk.CTkLabel(
-            badge_row,
-            text=f"⚡ {play_k}: Play | {stop_k}: Stop | F11: Overlay",
-            font=ctk.CTkFont(size=10, weight="bold"),
-            text_color=COLOR_CYAN
-        )
-        self.lbl_hotkeys.pack(side="left")
-
-        # Clickable Speed Button
         self.btn_speed_badge = ctk.CTkButton(
-            badge_row,
+            ctrl_row,
             text="1.0x",
-            font=ctk.CTkFont(size=10, weight="bold"),
-            fg_color=COLOR_BTN_BG,
+            font=ctk.CTkFont(family="Consolas", size=9, weight="bold"),
+            fg_color="#181B26",
             hover_color=COLOR_BTN_HOVER,
-            corner_radius=4,
-            text_color=COLOR_GOLD,
-            width=46,
-            height=22,
+            corner_radius=6,
+            text_color=COLOR_CYAN,
+            width=40,
+            height=28,
             command=self._cycle_speed
         )
         self.btn_speed_badge.pack(side="right")
+
+        # Row 4: Tactile Keycap Badges [F8] Play · [F10] Stop · [F11] HUD
+        badge_row = ctk.CTkFrame(self.body_frame, fg_color="transparent")
+        badge_row.pack(fill="x")
+
+        self.lbl_hotkeys = ctk.CTkLabel(
+            badge_row,
+            text="[F8] Play/Pause   [F10] Stop   [F11] HUD",
+            font=ctk.CTkFont(family="Consolas", size=8, weight="bold"),
+            text_color="#6B7280"
+        )
+        self.lbl_hotkeys.pack(side="left")
 
     # -------------------------------------------------------------
     # State synchronization & updates
@@ -374,8 +405,8 @@ class FloatingOverlay(ctk.CTkToplevel):
         current_sec: float,
         state_str: str,
         speed_val: float,
-        hotkey_play: str = "1",
-        hotkey_stop: str = "2"
+        hotkey_play: str = "F8",
+        hotkey_stop: str = "F10"
     ):
         """Immediately update all overlay fields when shown."""
         self.update_song_info(song_title, duration_sec, speed_val)
@@ -384,7 +415,7 @@ class FloatingOverlay(ctk.CTkToplevel):
         self.update_hotkey_label(hotkey_play, hotkey_stop)
 
     def update_song_info(self, title: str, duration_sec: float, speed_val: float):
-        clean_title = f"🎵 {title}" if not title.startswith("🎵") else title
+        clean_title = title if title else "No Song Loaded"
         self.lbl_song_title.configure(text=clean_title)
         self.lbl_compact_title.configure(text=clean_title)
         self.slider.configure(to=max(1.0, duration_sec))
@@ -402,28 +433,28 @@ class FloatingOverlay(ctk.CTkToplevel):
 
     def update_state(self, state_str: str):
         if state_str == "PLAYING":
-            self.btn_play.configure(text="⏸ Pause", fg_color="#2D3045", text_color="#A0A5BD")
-            self.btn_compact_play.configure(text="⏸", fg_color="#2D3045", text_color="#A0A5BD")
+            self.btn_play.configure(text="⏸ Pause", fg_color="#202434", hover_color="#2A3044", text_color="#00F2FE")
+            self.btn_compact_play.configure(text="⏸", fg_color="#202434", hover_color="#2A3044", text_color="#00F2FE")
         elif state_str == "PAUSED":
-            self.btn_play.configure(text="▶ Resume", fg_color=COLOR_GOLD, text_color="#12121A")
-            self.btn_compact_play.configure(text="▶", fg_color=COLOR_GOLD, text_color="#12121A")
+            self.btn_play.configure(text="▶ Resume", fg_color=COLOR_CORAL, hover_color=COLOR_CORAL_HOVER, text_color="#FFFFFF")
+            self.btn_compact_play.configure(text="▶", fg_color=COLOR_CORAL, hover_color=COLOR_CORAL_HOVER, text_color="#FFFFFF")
         else:
-            self.btn_play.configure(text="▶ Play", fg_color=COLOR_GOLD, text_color="#12121A")
-            self.btn_compact_play.configure(text="▶", fg_color=COLOR_GOLD, text_color="#12121A")
+            self.btn_play.configure(text="▶ Play", fg_color=COLOR_CORAL, hover_color=COLOR_CORAL_HOVER, text_color="#FFFFFF")
+            self.btn_compact_play.configure(text="▶", fg_color=COLOR_CORAL, hover_color=COLOR_CORAL_HOVER, text_color="#FFFFFF")
 
     def toggle_compact(self):
-        """Switch between Expanded view (380x190) and Compact Pill (380x42)."""
+        """Switch between Expanded view (340x136) and Compact Pill (320x36)."""
         if not self.is_compact:
             self.header_frame.pack_forget()
             self.body_frame.pack_forget()
             self.compact_frame.pack(fill="both", expand=True)
-            self.geometry("380x42")
+            self.geometry("320x36")
             self.is_compact = True
         else:
             self.compact_frame.pack_forget()
             self.header_frame.pack(fill="x", side="top")
-            self.body_frame.pack(fill="both", expand=True, padx=12, pady=6)
-            self.geometry("380x190")
+            self.body_frame.pack(fill="both", expand=True, padx=10, pady=(4, 6))
+            self.geometry("340x136")
             self.is_compact = False
 
     def _toggle_pin(self):
@@ -431,12 +462,12 @@ class FloatingOverlay(ctk.CTkToplevel):
         self.is_topmost = not self.is_topmost
         self.attributes('-topmost', self.is_topmost)
         if self.is_topmost:
-            self.btn_pin.configure(fg_color="#3D1E32", text_color=COLOR_CYAN)
+            self.btn_pin.configure(fg_color="#1F2332", text_color=COLOR_CYAN)
         else:
-            self.btn_pin.configure(fg_color="transparent", text_color="#7A7085")
+            self.btn_pin.configure(fg_color="transparent", text_color=COLOR_TEXT_MUTED)
 
     def _cycle_opacity(self):
-        """Cycle through 95% -> 75% -> 50% opacity with visible percentage readout."""
+        """Cycle through 95% -> 75% -> 50% opacity."""
         steps = [0.95, 0.75, 0.50]
         cur_idx = 0
         for i, val in enumerate(steps):
@@ -446,7 +477,7 @@ class FloatingOverlay(ctk.CTkToplevel):
         next_idx = (cur_idx + 1) % len(steps)
         self.current_opacity = steps[next_idx]
         self.attributes('-alpha', self.current_opacity)
-        self.btn_trans.configure(text=f"👁 {int(self.current_opacity*100)}%")
+        self.btn_trans.configure(text=f"{int(self.current_opacity*100)}%")
 
     def _cycle_speed(self):
         """Cycle playback speed: 0.8x -> 1.0x -> 1.25x -> 1.5x -> 2.0x."""
@@ -497,4 +528,4 @@ class FloatingOverlay(ctk.CTkToplevel):
 
     def update_hotkey_label(self, play_key: str, stop_key: str):
         if hasattr(self, "lbl_hotkeys"):
-            self.lbl_hotkeys.configure(text=f"⚡ {play_key}: Play | {stop_key}: Stop | F11: Overlay")
+            self.lbl_hotkeys.configure(text=f"[{play_key}] Play/Pause   [{stop_key}] Stop   [F11] HUD")

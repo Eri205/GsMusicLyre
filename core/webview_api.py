@@ -438,6 +438,12 @@ class JsApi:
     def get_target_instrument(self) -> str:
         return self._target_instrument
 
+    def set_instrument(self, instrument: str) -> Dict[str, Any]:
+        return self.set_target_instrument(instrument)
+
+    def close(self):
+        return self.close_window()
+
     def toggle_favorite(self, song_id: str) -> bool:
         return self._library_mgr.toggle_favorite(song_id)
 
@@ -558,6 +564,9 @@ class JsApi:
         if self._window:
             self._window.minimize()
 
+    def minimize(self):
+        return self.minimize_window()
+
     def toggle_maximize_window(self) -> bool:
         """Toggle between maximized and normal window state."""
         if not self._window:
@@ -572,6 +581,9 @@ class JsApi:
         except Exception as e:
             print(f"Toggle maximize error: {e}")
             return False
+
+    def maximize(self):
+        return self.toggle_maximize_window()
 
     def close_window(self):
         """Clean up all resources and close the application cleanly and immediately."""

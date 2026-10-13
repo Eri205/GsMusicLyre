@@ -1,14 +1,18 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=web/index.html">
-  <title>GsMusicLyre</title>
-  <script>
-    window.location.replace("web/index.html" + window.location.search + window.location.hash);
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GsMusicLyre — Tactical Minimalist OLED Studio</title>
+  <meta name="description" content="Tactical Minimalist & OLED Matte Dark Mode Music Lyre Studio & Gaming Tool for Genshin Impact and Sky: Children of the Light.">
+  <meta name="theme-color" content="#090A0F">
+  <link rel="icon" type="image/x-icon" href="web/assets/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
-<body style="background:#130D18;color:#eee;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
-  <p>Đang chuyển hướng tới <a href="web/index.html" style="color:#d4af37;">GsMusicLyre Studio</a>...</p>
+<body class="bg-[#090A0F] text-[#F1F3F9] antialiased select-none overflow-hidden m-0 p-0 font-sans">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>

@@ -1,0 +1,32 @@
+{
+  "name": "gsmusiclyre",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Ứng dụng chơi đàn tự động cho **Genshin Impact** và **Sky: Children of the Light** với giao diện **Liquid Glassmorphism** siêu hiện đại: - **Liquid Chromatic Mesh Background**: Nền gradient chất lỏng chuyển động mềm mại với hiệu ứng cực quang (Aurora Mesh) 60 FPS. - **Ultra-Frosted Glassmorphism**: Các thẻ điều khiển kính mờ (`backdrop-filter: blur(35px)`), viền phản chiếu ánh sáng óng ánh (Iridescent Border Reflection). - **21 Phím Đàn Liquid Glass**: Các phím đàn thiết kế như những viên ngọc kính giác bóng, hiệu ứng sóng vàng rực rỡ khi nốt nhạc được kích hoạt. - **Tích hợp Web Audio API**: Tự động phát âm thanh đàn hạc/lyre chân thực ngay trong app để nghe thử trước khi vào game. - **In-Game Floating Overlay**: Cửa sổ nổi điều khiển nhạc ngay trên màn hình game Genshin Impact (`Always-On-Top`) có thể kéo thả và chỉnh độ mờ trong suốt (Opacity). - **Đóng gói duy nhất 1 file `.exe`**: Chạy ngay lập tức không cần cài đặt Python.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "framer-motion": "^14.1.0",
+    "lucide-react": "^1.55.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.30",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^6.4.4"
+  }
+}

@@ -1,0 +1,151 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-base: #090A0F;
+    --surface-panel: #11131A;
+    --surface-card: #171922;
+    --surface-elevated: #1C1F2B;
+    --border-hairline: rgba(255, 255, 255, 0.08);
+    --border-active: rgba(255, 255, 255, 0.16);
+    --accent-coral: #FF5376;
+    --accent-teal: #00F2FE;
+    --text-primary: #F1F3F9;
+    --text-muted: #8E92A4;
+    --text-dim: #525666;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    letter-spacing: -0.01em;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Monospace metrics font */
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+}
+
+/* OLED Matte Border Hairline */
+.border-hairline {
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.border-hairline-t {
+  border-top-width: 1px;
+  border-top-style: solid;
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.border-hairline-b {
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.border-hairline-r {
+  border-right-width: 1px;
+  border-right-style: solid;
+  border-right-color: rgba(255, 255, 255, 0.08);
+}
+
+.border-hairline-l {
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Thin Tactical Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Tactical Skeleton Hairline Shimmer Gradient */
+@keyframes hairlineShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: #151821;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.07) 50%,
+    transparent 100%
+  );
+  animation: hairlineShimmer 1.4s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Pulse indicator for live playing state */
+@keyframes tacticalPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.95);
+  }
+}
+
+.tactical-pulse {
+  animation: tacticalPulse 2s infinite ease-in-out;
+}
+
+/* 3-Bar Mini Equalizer Waveform Animation */
+@keyframes eqBar1 {
+  0%, 100% { height: 3px; }
+  50% { height: 13px; }
+}
+@keyframes eqBar2 {
+  0%, 100% { height: 12px; }
+  50% { height: 4px; }
+}
+@keyframes eqBar3 {
+  0%, 100% { height: 5px; }
+  50% { height: 14px; }
+}
+
+.animate-eq-1 {
+  animation: eqBar1 0.75s ease-in-out infinite;
+}
+.animate-eq-2 {
+  animation: eqBar2 0.55s ease-in-out infinite;
+}
+.animate-eq-3 {
+  animation: eqBar3 0.85s ease-in-out infinite;
+}
