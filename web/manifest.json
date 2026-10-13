@@ -1,0 +1,37 @@
+{
+  "name": "GsMusicLyre - Genshin & Sky Lyre Studio",
+  "short_name": "GsMusicLyre",
+  "description": "Studio luyện đàn và phát nhạc cho Genshin Impact & Sky: Children of the Light",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#130D18",
+  "theme_color": "#130D18",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["music", "games", "entertainment"],
+  "shortcuts": [
+    {
+      "name": "Visual Lyre",
+      "url": "./index.html?view=lyre",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Song Library",
+      "url": "./index.html?view=library",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
